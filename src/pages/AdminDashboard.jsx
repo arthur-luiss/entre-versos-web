@@ -9,6 +9,7 @@ export function AdminDashboard() {
   }
 
   // Estados: Obras
+  const [editingId, setEditingId] = useState(null);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [category, setCategory] = useState("SAUDADE");
@@ -64,13 +65,17 @@ export function AdminDashboard() {
     if (status === 401 || status === 403) handleLogout();
   };
 
-  // Funções de Submit
+  // Funções de Submit (Criação ou Edição)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus("Publicando...");
+    setStatus(editingId ? "Salvando alterações..." : "Publicando...");
+
+    const url = editingId ? `/api/posts/${editingId}` : "/api/posts";
+    const method = editingId ? "PUT" : "POST";
+
     try {
-      const response = await fetch("/api/posts", {
-        method: "POST",
+      const response = await fetch(url, {
+        method: method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -78,19 +83,43 @@ export function AdminDashboard() {
         body: JSON.stringify({ title, author, category, content, type }),
       });
       if (response.ok) {
-        setStatus("Obra publicada com sucesso!");
+        setStatus(
+          editingId
+            ? "Obra atualizada com sucesso!"
+            : "Obra publicada com sucesso!",
+        );
         setTitle("");
         setAuthor("");
         setContent("");
+        setEditingId(null);
         fetchData();
         setTimeout(() => setStatus(""), 3000);
       } else {
         handleAuthError(response.status);
-        setStatus("Erro ao publicar.");
+        setStatus("Erro ao salvar obra.");
       }
     } catch (error) {
       setStatus("Erro de conexão.");
     }
+  };
+
+  const handleEditClick = (post) => {
+    setEditingId(post.id);
+    setTitle(post.title || "");
+    setAuthor(post.author || "");
+    setCategory(post.category || "SAUDADE");
+    setContent(post.content || "");
+    setType(post.type || "poema");
+    window.scrollTo({ top: 400, behavior: "smooth" });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setTitle("");
+    setAuthor("");
+    setContent("");
+    setCategory("SAUDADE");
+    setType("poema");
   };
 
   const handleDelete = async (id) => {
@@ -160,7 +189,7 @@ export function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans text-charcoal">
-      <header className="w-full bg-white border-b border-bordercolor py-4 px-8 flex items-center justify-between">
+      <header className="w-full bg-white border-b border-bordercolor py-4 px-6 md:px-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="font-serif text-lg font-semibold text-terra">
             Entre Versos
@@ -185,20 +214,20 @@ export function AdminDashboard() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl mx-auto px-6 py-12 w-full space-y-16">
+      <main className="flex-1 max-w-4xl mx-auto px-4 md:px-6 py-12 w-full space-y-16">
         {/* Banner Principal */}
         <div>
           <div className="mb-6">
-            <h1 className="font-serif text-3xl font-semibold text-charcoal">
+            <h1 className="font-serif text-2xl md:text-3xl font-semibold text-charcoal">
               Mensagem de Boas-vindas
             </h1>
-            <p className="text-sm text-subtle mt-1">
+            <p className="text-xs md:text-sm text-subtle mt-1">
               Altere o texto grande exibido no topo da página inicial.
             </p>
           </div>
           <form
             onSubmit={handleSaveHero}
-            className="bg-white border border-bordercolor rounded-3xl p-8 md:p-10 shadow-sm space-y-6"
+            className="bg-white border border-bordercolor rounded-3xl p-6 md:p-10 shadow-sm space-y-6"
           >
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
@@ -212,13 +241,13 @@ export function AdminDashboard() {
                 className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors font-serif leading-relaxed"
               ></textarea>
             </div>
-            <div className="flex items-center justify-between pt-4 border-t border-bordercolor">
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-bordercolor gap-3">
               <span className="text-sm font-medium text-terra">
                 {heroStatus}
               </span>
               <button
                 type="submit"
-                className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm"
+                className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm w-full sm:w-auto"
               >
                 Atualizar Banner
               </button>
@@ -229,13 +258,13 @@ export function AdminDashboard() {
         {/* Frase do Dia */}
         <div>
           <div className="mb-6">
-            <h1 className="font-serif text-3xl font-semibold text-charcoal">
+            <h1 className="font-serif text-2xl md:text-3xl font-semibold text-charcoal">
               Frase do Dia
             </h1>
           </div>
           <form
             onSubmit={handleSaveQuote}
-            className="bg-white border border-bordercolor rounded-3xl p-8 md:p-10 shadow-sm space-y-6"
+            className="bg-white border border-bordercolor rounded-3xl p-6 md:p-10 shadow-sm space-y-6"
           >
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
@@ -261,13 +290,13 @@ export function AdminDashboard() {
                 className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
               />
             </div>
-            <div className="flex items-center justify-between pt-4 border-t border-bordercolor">
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-bordercolor gap-3">
               <span className="text-sm font-medium text-terra">
                 {quoteStatus}
               </span>
               <button
                 type="submit"
-                className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm"
+                className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm w-full sm:w-auto"
               >
                 Atualizar Frase
               </button>
@@ -275,16 +304,27 @@ export function AdminDashboard() {
           </form>
         </div>
 
-        {/* Nova Publicação */}
+        {/* Nova Publicação / Edição */}
         <div>
-          <div className="mb-6">
-            <h1 className="font-serif text-3xl font-semibold text-charcoal">
-              Nova Publicação
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="font-serif text-2xl md:text-3xl font-semibold text-charcoal">
+              {editingId ? "Editar Obra" : "Nova Publicação"}
             </h1>
+            {editingId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="text-xs font-semibold text-subtle hover:text-charcoal bg-cardbg px-3 py-1.5 rounded-lg"
+              >
+                Cancelar Edição
+              </button>
+            )}
           </div>
           <form
             onSubmit={handleSubmit}
-            className="bg-white border border-bordercolor rounded-3xl p-8 md:p-10 shadow-sm space-y-6"
+            className={`bg-white border rounded-3xl p-6 md:p-10 shadow-sm space-y-6 transition-colors ${
+              editingId ? "border-terra bg-[#FCFBF9]" : "border-bordercolor"
+            }`}
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
@@ -356,21 +396,21 @@ export function AdminDashboard() {
                 className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors font-serif leading-relaxed"
               ></textarea>
             </div>
-            <div className="flex items-center justify-between pt-4 border-t border-bordercolor">
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-bordercolor gap-3">
               <span className="text-sm font-medium text-terra">{status}</span>
               <button
                 type="submit"
-                className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm"
+                className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm w-full sm:w-auto"
               >
-                Publicar obra
+                {editingId ? "Salvar alterações" : "Publicar obra"}
               </button>
             </div>
           </form>
         </div>
 
-        {/* Lista de Obras */}
+        {/* Lista de Obras Publicadas com botão de Editar */}
         <div>
-          <h2 className="font-serif text-2xl font-semibold text-charcoal mb-6 border-b border-bordercolor pb-4">
+          <h2 className="font-serif text-xl md:text-2xl font-semibold text-charcoal mb-6 border-b border-bordercolor pb-4">
             Obras Publicadas
           </h2>
           {posts.length === 0 ? (
@@ -382,7 +422,7 @@ export function AdminDashboard() {
               {posts.map((post) => (
                 <div
                   key={post.id}
-                  className="bg-white border border-bordercolor rounded-xl p-5 flex items-center justify-between hover:shadow-sm transition-shadow"
+                  className="bg-white border border-bordercolor rounded-xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-sm transition-shadow"
                 >
                   <div>
                     <h3 className="font-serif font-semibold text-charcoal">
@@ -392,12 +432,20 @@ export function AdminDashboard() {
                       {post.author} • {post.category}
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleDelete(post.id)}
-                    className="text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors"
-                  >
-                    Excluir
-                  </button>
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <button
+                      onClick={() => handleEditClick(post)}
+                      className="text-xs font-semibold text-charcoal bg-cardbg hover:bg-bordercolor px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(post.id)}
+                      className="text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Excluir
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

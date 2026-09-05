@@ -192,10 +192,26 @@ app.post('/api/hero', verifyToken, async (req, res) => {
     }
 });
 
+// Atualizar uma obra existente
+app.put('/api/posts/:id', verifyToken, async (req, res) => {
+    const { id } = req.params;
+    const { title, author, category, content, type } = req.body;
+    try {
+        await pool.query(
+            'UPDATE posts SET title = $1, author = $2, category = $3, content = $4, type = $5 WHERE id = $6',
+            [title, author, category, content, type, id]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao atualizar obra no banco:", err);
+        res.status(500).json({ error: "Erro ao atualizar obra" });
+    }
+});
+
 // --- PRODUÇÃO ---
 app.use(express.static(path.join(__dirname, '../dist')));
 app.get(/(.*)/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 app.listen(PORT, () => {
