@@ -30,18 +30,18 @@ export function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const resPosts = await fetch("http://localhost:3001/api/posts");
+      const resPosts = await fetch("/api/posts");
       const dataPosts = await resPosts.json();
       setPosts(dataPosts);
 
-      const resQuote = await fetch("http://localhost:3001/api/quote");
+      const resQuote = await fetch("/api/quote");
       const dataQuote = await resQuote.json();
       if (dataQuote) {
         setQuoteContent(dataQuote.content || "");
         setQuoteAuthor(dataQuote.author || "");
       }
 
-      const resHero = await fetch("http://localhost:3001/api/hero");
+      const resHero = await fetch("/api/hero");
       const dataHero = await resHero.json();
       if (dataHero) {
         setHeroContent(dataHero.content || "");
@@ -69,7 +69,7 @@ export function AdminDashboard() {
     e.preventDefault();
     setStatus("Publicando...");
     try {
-      const response = await fetch("http://localhost:3001/api/posts", {
+      const response = await fetch("/api/posts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -96,7 +96,7 @@ export function AdminDashboard() {
   const handleDelete = async (id) => {
     if (!window.confirm("Deseja excluir esta obra?")) return;
     try {
-      const response = await fetch(`http://localhost:3001/api/posts/${id}`, {
+      const response = await fetch(`/api/posts/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -114,7 +114,7 @@ export function AdminDashboard() {
     e.preventDefault();
     setQuoteStatus("Salvando...");
     try {
-      const response = await fetch("http://localhost:3001/api/quote", {
+      const response = await fetch("/api/quote", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -138,7 +138,7 @@ export function AdminDashboard() {
     e.preventDefault();
     setHeroStatus("Salvando...");
     try {
-      const response = await fetch("http://localhost:3001/api/hero", {
+      const response = await fetch("/api/hero", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -14,7 +14,7 @@ export function Home() {
     async function fetchData() {
       try {
         // 1. Busca os destaques
-        const resPosts = await fetch("http://localhost:3001/api/posts");
+        const resPosts = await fetch("/api/posts");
         if (resPosts.ok) {
           const dataPosts = await resPosts.json();
           setRecentPosts(dataPosts.slice(0, 3));
