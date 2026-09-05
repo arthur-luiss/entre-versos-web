@@ -10,7 +10,7 @@ export function Reading() {
   useEffect(() => {
     async function fetchPost() {
       try {
-        const response = await fetch(`http://localhost:3001/api/posts/${id}`);
+        const response = await fetch(`/api/posts/${id}`);
         if (response.ok) {
           const data = await response.json();
           setPost(data);
