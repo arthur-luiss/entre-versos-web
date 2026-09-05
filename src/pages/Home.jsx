@@ -21,14 +21,14 @@ export function Home() {
         }
 
         // 2. Busca a Frase do Dia
-        const resQuote = await fetch("http://localhost:3001/api/quote");
+        const resQuote = await fetch("/api/quote");
         if (resQuote.ok) {
           const dataQuote = await resQuote.json();
           setQuote(dataQuote);
         }
 
         // 3. Busca a Mensagem do Banner (Hero)
-        const resHero = await fetch("http://localhost:3001/api/hero");
+        const resHero = await fetch("/api/hero");
         if (resHero.ok) {
           const dataHero = await resHero.json();
           setHeroText(dataHero.content);
