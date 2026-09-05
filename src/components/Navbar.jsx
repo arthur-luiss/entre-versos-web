@@ -1,122 +1,92 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 export function Navbar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
   const location = useLocation();
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/explore?search=${encodeURIComponent(searchTerm.trim())}`);
+      setSearchOpen(false);
+      setSearchTerm("");
+    }
   };
 
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
+  const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="w-full bg-white border-b border-bordercolor relative z-50">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Logo */}
-        <Link
-          to="/"
-          onClick={closeMenu}
-          className="font-serif text-xl font-bold text-terra hover:opacity-90 transition-opacity"
-        >
-          Entre Versos
-        </Link>
+    <header className="w-full bg-background py-6 px-6 relative">
+      <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="flex items-center">
+          <Link to="/" className="font-serif text-xl font-semibold text-terra">
+            Entre Versos
+          </Link>
+        </div>
 
-        {/* Menu Desktop */}
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-8 font-sans text-sm font-medium text-subtle">
           <Link
             to="/"
-            className={`${
-              location.pathname === "/" ? "text-terra" : "text-subtle"
-            } hover:text-charcoal transition-colors`}
+            className={`transition-colors ${isActive("/") ? "text-charcoal font-semibold" : "hover:text-charcoal"}`}
           >
             Início
           </Link>
           <Link
-            to="/explorar"
-            className={`${
-              location.pathname === "/explorar" ? "text-terra" : "text-subtle"
-            } hover:text-charcoal transition-colors`}
+            to="/explore"
+            className={`transition-colors ${isActive("/explore") ? "text-charcoal font-semibold" : "hover:text-charcoal"}`}
           >
             Poemas
           </Link>
           <Link
             to="/sobre"
-            className={`${
-              location.pathname === "/sobre" ? "text-terra" : "text-subtle"
-            } hover:text-charcoal transition-colors`}
+            className={`transition-colors ${isActive("/sobre") ? "text-charcoal font-semibold" : "hover:text-charcoal"}`}
           >
             Sobre
           </Link>
-        </div>
+        </nav>
 
-        {/* Botão Hambúrguer (Mobile) */}
-        <button
-          className="md:hidden p-2 text-charcoal hover:bg-cardbg rounded-lg transition-colors focus:outline-none"
-          onClick={toggleMenu}
-          aria-label="Abrir menu"
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {isMenuOpen ? (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
+        <div className="flex items-center relative">
+          {searchOpen ? (
+            <form onSubmit={handleSearch} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Pesquisar versos..."
+                autoFocus
+                className="px-3 py-1.5 text-xs rounded-lg border border-bordercolor bg-white text-charcoal focus:outline-none focus:border-terra w-40 md:w-56"
               />
-            ) : (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            )}
-          </svg>
-        </button>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="text-xs text-subtle hover:text-charcoal font-bold"
+              >
+                ✕
+              </button>
+            </form>
+          ) : (
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="text-charcoal hover:opacity-70 transition-opacity p-1"
+              aria-label="Pesquisar"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
-
-      {/* Menu Mobile (Dropdown) */}
-      {isMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-bordercolor shadow-lg py-4 px-6 flex flex-col gap-4 animate-in slide-in-from-top-2">
-          <Link
-            to="/"
-            onClick={closeMenu}
-            className={`text-base font-medium ${
-              location.pathname === "/" ? "text-terra" : "text-subtle"
-            }`}
-          >
-            Início
-          </Link>
-          <Link
-            to="/explorar"
-            onClick={closeMenu}
-            className={`text-base font-medium ${
-              location.pathname === "/explorar" ? "text-terra" : "text-subtle"
-            }`}
-          >
-            Poemas
-          </Link>
-          <Link
-            to="/sobre"
-            onClick={closeMenu}
-            className={`text-base font-medium ${
-              location.pathname === "/sobre" ? "text-terra" : "text-subtle"
-            }`}
-          >
-            Sobre
-          </Link>
-        </div>
-      )}
-    </nav>
+    </header>
   );
 }
