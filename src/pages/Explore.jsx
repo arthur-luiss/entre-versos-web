@@ -13,7 +13,16 @@ export function Explore() {
   const [inputSearch, setInputSearch] = useState(searchQuery);
 
   // Lista de categorias disponíveis para filtro rápido
-  const categories = ["SAUDADE", "REFLEXÃO", "VIDA", "AMOR", "SUPERAÇÃO"];
+  const categories = [
+    "SAUDADE",
+    "REFLEXÃO",
+    "VIDA",
+    "AMOR",
+    "SUPERAÇÃO",
+    "SOLIDÃO",
+    "ESPERANÇA",
+    "PAZ",
+  ];
 
   useEffect(() => {
     async function fetchPosts() {

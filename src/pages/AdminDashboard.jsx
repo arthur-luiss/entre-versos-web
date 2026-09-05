@@ -275,7 +275,7 @@ export function AdminDashboard() {
           </form>
         </div>
 
-        {/* Nova Publicação (Mantido igual) */}
+        {/* Nova Publicação */}
         <div>
           <div className="mb-6">
             <h1 className="font-serif text-3xl font-semibold text-charcoal">
@@ -314,6 +314,9 @@ export function AdminDashboard() {
                   <option value="VIDA">Vida</option>
                   <option value="AMOR">Amor</option>
                   <option value="SUPERAÇÃO">Superação</option>
+                  <option value="SOLIDÃO">Solidão</option>
+                  <option value="ESPERANÇA">Esperança</option>
+                  <option value="PAZ">Paz</option>
                 </select>
               </div>
               <div>
@@ -365,7 +368,7 @@ export function AdminDashboard() {
           </form>
         </div>
 
-        {/* Lista de Obras (Mantido igual) */}
+        {/* Lista de Obras */}
         <div>
           <h2 className="font-serif text-2xl font-semibold text-charcoal mb-6 border-b border-bordercolor pb-4">
             Obras Publicadas
