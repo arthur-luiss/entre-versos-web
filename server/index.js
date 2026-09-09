@@ -214,14 +214,15 @@ app.get(/(.*)/, (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-// --- FIM PRODUÇÃO ---
 const serverless = require('serverless-http');
 
-if (process.env.NODE_ENV !== 'production') {
+// Se NÃO estiver na Vercel (ou seja, se estiver rodando no Render ou localmente), liga o servidor normal
+if (!process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`Servidor rodando na porta ${PORT}`);
     });
 }
 
+// Exporta para a Vercel (Serverless)
 module.exports = app;
 module.exports.handler = serverless(app);
