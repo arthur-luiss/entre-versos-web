@@ -7,7 +7,7 @@ export function Home() {
   const [loading, setLoading] = useState(true);
   const [quote, setQuote] = useState({ content: "Carregando...", author: "" });
   const [heroText, setHeroText] = useState(
-    "Algumas palavras não precisam ser ditas. Precisam ser sentidas.",
+    "Carregando banner...",
   );
 
   useEffect(() => {
