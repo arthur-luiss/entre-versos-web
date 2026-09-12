@@ -57,7 +57,7 @@ export function Home() {
             "{heroText}"
           </h1>
           <a
-            href="#destaques"
+            href="/explore"
             className="bg-terra text-white font-medium px-6 py-3 md:px-8 md:py-3 rounded-full hover:opacity-90 transition-opacity text-sm inline-block"
           >
             Comece a ler
