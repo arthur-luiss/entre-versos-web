@@ -22,6 +22,12 @@ O projeto foi desenvolvido com uma arquitetura desacoplada:
 
 ---
 
+## 🌐 Visualização do projeto em produção: 
+
+🔗[Visualizar](https://entre-versos-web.vercel.app/)
+
+---
+
 ## ⚙️ Como Rodar o Projeto Localmente
 
 Certifique-se de ter o **Node.js** instalado em sua máquina.
