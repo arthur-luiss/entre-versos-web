@@ -10,6 +10,10 @@ export function Explore() {
   const categoryFilter = searchParams.get("category");
   const searchQuery = searchParams.get("search") || "";
 
+  // Novo estado para controlar a aba ativa (poema ou frase)
+  // Se não houver parâmetro na URL, o padrão é 'poema'
+  const activeTab = searchParams.get("type") || "poema";
+
   const [inputSearch, setInputSearch] = useState(searchQuery);
 
   // Lista de categorias disponíveis para filtro rápido
@@ -44,19 +48,24 @@ export function Explore() {
     setInputSearch(searchQuery);
   }, [searchQuery]);
 
-  // Filtragem combinada (por categoria e/ou termo de busca)
+  // Filtragem combinada (por TIPO + categoria e/ou termo de busca)
   const filteredPosts = posts.filter((post) => {
+    // 1. Filtra primeiro pelo tipo (aba ativa)
+    const matchesType = post.type === activeTab;
+
+    // 2. Filtra pela categoria
     const matchesCategory = categoryFilter
       ? post.category?.toUpperCase() === categoryFilter.toUpperCase()
       : true;
 
+    // 3. Filtra pelo termo de busca (título, conteúdo ou autor)
     const matchesSearch = searchQuery
       ? post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.author?.toLowerCase().includes(searchQuery.toLowerCase())
       : true;
 
-    return matchesCategory && matchesSearch;
+    return matchesType && matchesCategory && matchesSearch;
   });
 
   const handleDirectSearch = (e) => {
@@ -80,29 +89,35 @@ export function Explore() {
     setSearchParams(params);
   };
 
+  // Nova função para trocar de aba
+  const handleTabChange = (type) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("type", type);
+    // Opcional: limpar a pesquisa ou a categoria ao trocar de aba
+    // params.delete("search");
+    // params.delete("category");
+    setSearchParams(params);
+  };
+
   const clearFilters = () => {
-    setSearchParams({});
+    const params = new URLSearchParams();
+    params.set("type", activeTab); // Mantém a aba atual ao limpar filtros
+    setSearchParams(params);
     setInputSearch("");
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans text-charcoal">
+    <div className="min-h-screen bg-background flex flex-col font-sans text-charcoal transition-colors duration-500">
       <Navbar />
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-12 w-full">
         {/* Cabeçalho e Barra de Pesquisa */}
-        <div className="mb-8 border-b border-bordercolor pb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <h1 className="font-serif text-3xl font-semibold mb-2 text-charcoal">
-              {searchQuery
-                ? `Busca por: "${searchQuery}"`
-                : categoryFilter
-                  ? `Explorando: ${categoryFilter}`
-                  : "Acervo Completo"}
+              Acervo Completo
             </h1>
             <p className="text-subtle text-sm">
-              {searchQuery || categoryFilter
-                ? `Exibindo resultados filtrados no acervo.`
-                : "Navegue por todas as obras cadastradas na plataforma."}
+              Navegue por todas as obras cadastradas na plataforma.
             </p>
           </div>
 
@@ -112,7 +127,7 @@ export function Explore() {
               value={inputSearch}
               onChange={(e) => setInputSearch(e.target.value)}
               placeholder="Buscar título, autor..."
-              className="px-4 py-2 rounded-xl border border-bordercolor bg-cardbg transition-colors duration-500 text-xs text-charcoal focus:outline-none focus:border-terra w-56"
+              className="px-4 py-2 rounded-xl border border-bordercolor bg-cardbg transition-colors duration-500 text-xs text-charcoal focus:outline-none focus:border-terra w-full md:w-56"
             />
             <button
               type="submit"
@@ -124,13 +139,46 @@ export function Explore() {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="text-xs font-semibold text-subtle hover:text-charcoal bg-cardbg px-3 py-2 rounded-xl"
+                className="text-xs font-semibold text-subtle hover:text-charcoal bg-cardbg px-3 py-2 rounded-xl transition-colors"
               >
                 Limpar ✕
               </button>
             )}
           </form>
         </div>
+
+        {/* INTERRUPTOR (TOGGLE) DE ABAS: POEMAS | FRASES */}
+        <div className="flex justify-center md:justify-start mb-8 pb-8 border-b border-bordercolor">
+          <div className="bg-cardbg border border-bordercolor p-1 rounded-full flex gap-1 transition-colors duration-500 w-full sm:w-auto">
+            <button
+              onClick={() => handleTabChange("poema")}
+              className={`flex-1 sm:w-32 px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
+                activeTab === "poema"
+                  ? "bg-terra text-white shadow-sm"
+                  : "text-subtle hover:text-charcoal"
+              }`}
+            >
+              Poemas
+            </button>
+            <button
+              onClick={() => handleTabChange("frase")}
+              className={`flex-1 sm:w-32 px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
+                activeTab === "frase"
+                  ? "bg-terra text-white shadow-sm"
+                  : "text-subtle hover:text-charcoal"
+              }`}
+            >
+              Frases
+            </button>
+          </div>
+        </div>
+
+        {/* Informação visual rápida se houver filtros ativos (Busca/Categoria) */}
+        {(searchQuery || categoryFilter) && (
+          <p className="text-sm font-medium text-terra mb-6">
+            Exibindo {activeTab === "poema" ? "poemas" : "frases"} filtrados.
+          </p>
+        )}
 
         {/* BARRA DE FILTRO POR TAGS / SENTIMENTOS */}
         <div className="flex flex-wrap items-center gap-2 mb-10">
@@ -151,7 +199,6 @@ export function Explore() {
 
           {categories.map((cat) => {
             const isSelected = categoryFilter?.toUpperCase() === cat;
-            // Formata a exibição (ex: SAUDADE -> Saudade)
             const displayName = cat.charAt(0) + cat.slice(1).toLowerCase();
             return (
               <button
@@ -169,18 +216,19 @@ export function Explore() {
           })}
         </div>
 
+        {/* GRID DE RESULTADOS */}
         {loading ? (
-          <p className="text-subtle text-center py-12">Carregando obras...</p>
+          <p className="text-subtle text-center py-12">Carregando acervo...</p>
         ) : filteredPosts.length === 0 ? (
           <div className="text-center py-16 space-y-3">
             <p className="text-subtle text-sm">
-              Nenhuma obra encontrada com os critérios informados.
+              Nenhum resultado encontrado nesta aba com os critérios informados.
             </p>
             <button
               onClick={clearFilters}
               className="text-terra font-semibold hover:underline text-xs"
             >
-              Ver acervo completo
+              Limpar filtros
             </button>
           </div>
         ) : (
@@ -188,7 +236,7 @@ export function Explore() {
             {filteredPosts.map((post) => (
               <article
                 key={post.id}
-                className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-2xl p-6 flex flex-col justify-between hover:shadow-sm transition-shadow h-full min-h-[220px]"
+                className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-2xl p-6 flex flex-col justify-between hover:shadow-sm h-full min-h-[220px]"
               >
                 <div>
                   <span className="text-[10px] font-bold tracking-widest text-terra uppercase">
@@ -202,7 +250,7 @@ export function Explore() {
                   </p>
                 </div>
                 <div>
-                  <div className="border-t border-cardbg pt-4 flex justify-between items-center text-xs mt-auto">
+                  <div className="border-t border-bordercolor pt-4 flex justify-between items-center text-xs mt-auto transition-colors duration-500">
                     <span className="text-subtle truncate max-w-[120px]">
                       {post.author}
                     </span>

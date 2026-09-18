@@ -91,7 +91,7 @@ export function Navbar() {
             to="/explore"
             className={`transition-colors ${isActive("/explore") ? "text-charcoal font-semibold" : "hover:text-charcoal"}`}
           >
-            Poemas
+            Explore
           </Link>
           <Link
             to="/sobre"
