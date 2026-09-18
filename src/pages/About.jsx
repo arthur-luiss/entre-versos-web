@@ -11,7 +11,7 @@ export function About() {
         <p className="font-serif text-base md:text-lg italic text-subtle mb-6 md:mb-8 px-4">
           "Acreditamos que a literatura não precisa de ruídos."
         </p>
-        <div className="bg-white border border-bordercolor rounded-2xl p-6 sm:p-8 text-left text-subtle leading-relaxed space-y-4 text-sm md:text-base">
+        <div className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-2xl p-6 sm:p-8 text-left text-subtle leading-relaxed space-y-4 text-sm md:text-base">
           <p>
             Em um mundo hiperconectado e barulhento, o{" "}
             <strong className="text-terra">Entre Versos</strong> nasce como um

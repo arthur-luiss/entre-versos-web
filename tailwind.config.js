@@ -4,19 +4,20 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class', // Permite alternar o tema manualmente
   theme: {
     extend: {
       colors: {
-        background: "#FCFAF7",
-        terra: "#8A5E52",
-        charcoal: "#2E2A27",
-        subtle: "#8A827C",
-        bordercolor: "#DAD2CA",
-        cardbg: "#F1EBE5",
+        background: 'var(--color-background)',
+        charcoal: 'var(--color-charcoal)',
+        subtle: 'var(--color-subtle)',
+        terra: 'var(--color-terra)',
+        cardbg: 'var(--color-cardbg)',
+        bordercolor: 'var(--color-bordercolor)',
       },
       fontFamily: {
-        serif: ['Lora', 'Georgia', 'serif'],
-        sans: ['Inter', 'Arial', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
+        serif: ['Georgia', 'serif'],
       },
     },
   },

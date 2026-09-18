@@ -8,6 +8,9 @@ export function AdminDashboard() {
     return <Navigate to="/admin" replace />;
   }
 
+  // Estados: Tema Escuro
+  const [isDark, setIsDark] = useState(false);
+
   // Estados: Obras
   const [editingId, setEditingId] = useState(null);
   const [title, setTitle] = useState("");
@@ -28,6 +31,26 @@ export function AdminDashboard() {
   const [heroStatus, setHeroStatus] = useState("");
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const theme = localStorage.getItem("theme");
+    if (theme === "dark") {
+      setIsDark(true);
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    if (isDark) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      setIsDark(false);
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setIsDark(true);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -188,17 +211,34 @@ export function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans text-charcoal">
-      <header className="w-full bg-white border-b border-bordercolor py-4 px-6 md:px-8 flex items-center justify-between">
+    <div className="min-h-screen bg-background flex flex-col font-sans text-charcoal transition-colors duration-500">
+      <header className="w-full bg-cardbg transition-colors duration-500 border-b border-bordercolor py-4 px-6 md:px-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="font-serif text-lg font-semibold text-terra">
             Entre Versos
           </span>
-          <span className="text-xs bg-cardbg px-2.5 py-1 rounded-md text-subtle font-medium">
+          <span className="text-xs bg-cardbg border border-bordercolor px-2.5 py-1 rounded-md text-subtle font-medium">
             Admin
           </span>
         </div>
-        <div className="flex items-center gap-6 text-sm font-medium">
+        <div className="flex items-center gap-4 md:gap-6 text-sm font-medium">
+          {/* Botão de Alternância de Tema */}
+          <button
+            onClick={toggleTheme}
+            className="text-charcoal hover:opacity-75 transition-opacity p-2 rounded-full border border-bordercolor bg-cardbg shadow-sm focus:outline-none"
+            aria-label="Alternar tema"
+          >
+            {isDark ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            )}
+          </button>
+
           <Link
             to="/"
             className="text-subtle hover:text-charcoal transition-colors"
@@ -227,7 +267,7 @@ export function AdminDashboard() {
           </div>
           <form
             onSubmit={handleSaveHero}
-            className="bg-white border border-bordercolor rounded-3xl p-6 md:p-10 shadow-sm space-y-6"
+            className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-3xl p-6 md:p-10 shadow-sm space-y-6"
           >
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
@@ -264,7 +304,7 @@ export function AdminDashboard() {
           </div>
           <form
             onSubmit={handleSaveQuote}
-            className="bg-white border border-bordercolor rounded-3xl p-6 md:p-10 shadow-sm space-y-6"
+            className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-3xl p-6 md:p-10 shadow-sm space-y-6"
           >
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
@@ -314,7 +354,7 @@ export function AdminDashboard() {
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="text-xs font-semibold text-subtle hover:text-charcoal bg-cardbg px-3 py-1.5 rounded-lg"
+                className="text-xs font-semibold text-subtle hover:text-charcoal bg-cardbg border border-bordercolor px-3 py-1.5 rounded-lg transition-colors"
               >
                 Cancelar Edição
               </button>
@@ -322,8 +362,8 @@ export function AdminDashboard() {
           </div>
           <form
             onSubmit={handleSubmit}
-            className={`bg-white border rounded-3xl p-6 md:p-10 shadow-sm space-y-6 transition-colors ${
-              editingId ? "border-terra bg-[#FCFBF9]" : "border-bordercolor"
+            className={`bg-cardbg duration-500 border rounded-3xl p-6 md:p-10 shadow-sm space-y-6 transition-colors ${
+              editingId ? "border-terra" : "border-bordercolor"
             }`}
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -422,7 +462,7 @@ export function AdminDashboard() {
               {posts.map((post) => (
                 <div
                   key={post.id}
-                  className="bg-white border border-bordercolor rounded-xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-sm transition-shadow"
+                  className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-sm"
                 >
                   <div>
                     <h3 className="font-serif font-semibold text-charcoal">
@@ -435,13 +475,13 @@ export function AdminDashboard() {
                   <div className="flex items-center gap-2 self-end sm:self-auto">
                     <button
                       onClick={() => handleEditClick(post)}
-                      className="text-xs font-semibold text-charcoal bg-cardbg hover:bg-bordercolor px-4 py-2 rounded-lg transition-colors"
+                      className="text-xs font-semibold text-charcoal bg-background border border-bordercolor hover:border-terra px-4 py-2 rounded-lg transition-colors"
                     >
                       Editar
                     </button>
                     <button
                       onClick={() => handleDelete(post.id)}
-                      className="text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors"
+                      className="text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900 px-4 py-2 rounded-lg transition-colors"
                     >
                       Excluir
                     </button>

@@ -65,7 +65,7 @@ export function Reading() {
             </div>
 
             {/* O whitespace-pre-wrap mantém as quebras de linha do poema */}
-            <article className="font-serif text-base sm:text-lg md:text-xl text-charcoal leading-loose bg-white border border-bordercolor rounded-2xl md:rounded-3xl p-6 sm:p-10 md:p-16 shadow-sm mb-8 md:mb-12 text-center whitespace-pre-wrap overflow-x-auto">
+            <article className="font-serif text-base sm:text-lg md:text-xl text-charcoal leading-loose bg-cardbg transition-colors duration-500 border border-bordercolor rounded-2xl md:rounded-3xl p-6 sm:p-10 md:p-16 shadow-sm mb-8 md:mb-12 text-center whitespace-pre-wrap overflow-x-auto">
               {post.content}
             </article>
 

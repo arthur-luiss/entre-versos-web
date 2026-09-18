@@ -28,7 +28,7 @@ export function Privacy() {
           </p>
         </div>
 
-        <div className="bg-white border border-bordercolor rounded-3xl p-8 md:p-12 shadow-sm space-y-8 text-subtle leading-relaxed text-sm">
+        <div className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-3xl p-8 md:p-12 shadow-sm space-y-8 text-subtle leading-relaxed text-sm">
           <section className="space-y-3">
             <h2 className="font-serif text-xl font-semibold text-charcoal">
               1. Introdução

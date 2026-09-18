@@ -112,7 +112,7 @@ export function Explore() {
               value={inputSearch}
               onChange={(e) => setInputSearch(e.target.value)}
               placeholder="Buscar título, autor..."
-              className="px-4 py-2 rounded-xl border border-bordercolor bg-white text-xs text-charcoal focus:outline-none focus:border-terra w-56"
+              className="px-4 py-2 rounded-xl border border-bordercolor bg-cardbg transition-colors duration-500 text-xs text-charcoal focus:outline-none focus:border-terra w-56"
             />
             <button
               type="submit"
@@ -143,7 +143,7 @@ export function Explore() {
             className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors border ${
               !categoryFilter
                 ? "bg-terra text-white border-terra"
-                : "bg-white text-charcoal border-bordercolor hover:border-terra"
+                : "bg-cardbg transition-colors duration-500 text-charcoal border-bordercolor hover:border-terra"
             }`}
           >
             Todas
@@ -160,7 +160,7 @@ export function Explore() {
                 className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors border ${
                   isSelected
                     ? "bg-terra text-white border-terra"
-                    : "bg-white text-charcoal border-bordercolor hover:border-terra"
+                    : "bg-cardbg transition-colors duration-500 text-charcoal border-bordercolor hover:border-terra"
                 }`}
               >
                 {displayName}
@@ -188,7 +188,7 @@ export function Explore() {
             {filteredPosts.map((post) => (
               <article
                 key={post.id}
-                className="bg-white border border-bordercolor rounded-2xl p-6 flex flex-col justify-between hover:shadow-sm transition-shadow h-full min-h-[220px]"
+                className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-2xl p-6 flex flex-col justify-between hover:shadow-sm transition-shadow h-full min-h-[220px]"
               >
                 <div>
                   <span className="text-[10px] font-bold tracking-widest text-terra uppercase">

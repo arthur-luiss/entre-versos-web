@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* Tema Claro Original Restaurado */
+    --color-background: #FCFBF9;
+    --color-charcoal: #2D2825;
+    --color-subtle: #8B837E;
+    --color-terra: #8C5A4D; /* <- Cor original restaurada (marrom terroso) */
+    --color-cardbg: #F7F5F2;
+    --color-bordercolor: #EAE5DF;
+  }
+
+  .dark {
+    /* Tema Escuro: Sépia Sombrio */
+    --color-background: #241E1C;
+    --color-charcoal: #E8E3D5;
+    --color-subtle: #A39C97;
+    --color-terra: #D17A58;
+    --color-cardbg: #2C2522;
+    --color-bordercolor: #3D3531;
+  }
+
+  /* Aplica o fundo de forma global e adiciona uma transição suave */
+  body {
+    @apply bg-background transition-colors duration-500 ease-in-out;
+  }
+}       

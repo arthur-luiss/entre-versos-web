@@ -6,9 +6,7 @@ export function Home() {
   const [recentPosts, setRecentPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [quote, setQuote] = useState({ content: "Carregando...", author: "" });
-  const [heroText, setHeroText] = useState(
-    "Carregando banner...",
-  );
+  const [heroText, setHeroText] = useState("Carregando banner...");
 
   useEffect(() => {
     async function fetchData() {
@@ -44,12 +42,12 @@ export function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans text-charcoal">
+    <div className="min-h-screen bg-background flex flex-col font-sans text-charcoal transition-colors duration-500">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8 w-full flex flex-col gap-12 md:gap-16"> 
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8 w-full flex flex-col gap-12 md:gap-16">
         {/* HERO SECTION */}
-        <section className="w-full bg-[#F5EFEB] border border-bordercolor rounded-2xl md:rounded-3xl py-12 px-6 md:py-16 md:px-8 text-center flex flex-col items-center relative overflow-hidden">
+        <section className="w-full bg-cardbg border border-bordercolor rounded-2xl md:rounded-3xl py-12 px-6 md:py-16 md:px-8 text-center flex flex-col items-center relative overflow-hidden transition-colors duration-500">
           <div className="text-terra text-4xl md:text-5xl font-serif mb-2 md:mb-4 leading-none">
             “
           </div>
@@ -91,7 +89,7 @@ export function Home() {
               {recentPosts.map((post) => (
                 <article
                   key={post.id}
-                  className="bg-white border border-bordercolor rounded-2xl p-5 md:p-6 flex flex-col justify-between hover:shadow-sm transition-shadow h-full min-h-[200px] md:min-h-[220px]"
+                  className="bg-cardbg border border-bordercolor rounded-2xl p-5 md:p-6 flex flex-col justify-between hover:shadow-sm transition-all duration-500 h-full min-h-[200px] md:min-h-[220px]"
                 >
                   <div>
                     <span className="text-[10px] font-bold tracking-widest text-terra uppercase">
@@ -100,13 +98,12 @@ export function Home() {
                     <h3 className="font-serif text-lg md:text-xl font-semibold mt-1 md:mt-2 mb-2 md:mb-3 text-charcoal line-clamp-1">
                       {post.title}
                     </h3>
-                    {/* line-clamp-3 limita o texto a 3 linhas com reticências no final */}
                     <p className="font-serif text-xs md:text-sm italic text-subtle mb-4 md:mb-6 leading-relaxed line-clamp-3">
                       {post.content}
                     </p>
                   </div>
                   <div>
-                    <div className="border-t border-cardbg pt-3 md:pt-4 flex justify-between items-center text-xs mt-auto">
+                    <div className="border-t border-bordercolor pt-3 md:pt-4 flex justify-between items-center text-xs mt-auto transition-colors duration-500">
                       <span className="text-subtle truncate max-w-[100px] md:max-w-[120px]">
                         {post.author}
                       </span>
@@ -127,7 +124,7 @@ export function Home() {
         {/* SEÇÃO INFERIOR: FRASE DO DIA + EXPLORE POR SENTIMENTOS */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-center pb-8 md:pb-12">
           {/* Frase do Dia Card Dinâmico */}
-          <div className="bg-[#EFE7E1] border border-bordercolor rounded-2xl p-6 md:p-8 flex flex-col justify-between h-full min-h-[200px] md:min-h-[220px] order-2 md:order-1">
+          <div className="bg-cardbg border border-bordercolor rounded-2xl p-6 md:p-8 flex flex-col justify-between h-full min-h-[200px] md:min-h-[220px] order-2 md:order-1 transition-colors duration-500">
             <div>
               <span className="text-[10px] font-bold tracking-widest text-terra uppercase">
                 FRASE DO DIA
@@ -161,7 +158,7 @@ export function Home() {
                 <Link
                   key={tag}
                   to={`/explore?category=${tag.toUpperCase()}`}
-                  className="px-4 py-1.5 md:px-5 md:py-2 rounded-full border border-bordercolor text-[10px] md:text-xs font-medium text-charcoal bg-white hover:border-terra transition-colors cursor-pointer inline-block"
+                  className="px-4 py-1.5 md:px-5 md:py-2 rounded-full border border-bordercolor text-[10px] md:text-xs font-medium text-charcoal bg-cardbg hover:border-terra transition-colors duration-500 cursor-pointer inline-block"
                 >
                   {tag}
                 </Link>
@@ -172,7 +169,7 @@ export function Home() {
       </main>
 
       {/* RODAPÉ */}
-      <footer className="border-t border-bordercolor py-6 md:py-8 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between text-xs text-subtle gap-4 text-center md:text-left">
+      <footer className="border-t border-bordercolor bg-background py-6 md:py-8 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between text-xs text-subtle gap-4 text-center md:text-left transition-colors duration-500">
         <div>
           <span className="font-serif font-semibold text-terra text-sm">
             Entre Versos
