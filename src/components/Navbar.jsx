@@ -173,7 +173,7 @@ export function Navbar() {
             onClick={() => setMobileMenuOpen(false)}
             className={`transition-colors ${isActive("/explore") ? "text-charcoal font-semibold" : "hover:text-charcoal"}`}
           >
-            Poemas
+            Explore
           </Link>
           <Link
             to="/sobre"
