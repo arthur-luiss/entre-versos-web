@@ -47,7 +47,7 @@ export function Home() {
     <div className="min-h-screen bg-background flex flex-col font-sans text-charcoal">
       <Navbar />
 
-      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-8 w-full flex flex-col gap-12 md:gap-16">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8 w-full flex flex-col gap-12 md:gap-16"> 
         {/* HERO SECTION */}
         <section className="w-full bg-[#F5EFEB] border border-bordercolor rounded-2xl md:rounded-3xl py-12 px-6 md:py-16 md:px-8 text-center flex flex-col items-center relative overflow-hidden">
           <div className="text-terra text-4xl md:text-5xl font-serif mb-2 md:mb-4 leading-none">

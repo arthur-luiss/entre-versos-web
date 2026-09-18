@@ -22,7 +22,7 @@ export function Navbar() {
 
   return (
     <header className="w-full bg-background py-4 md:py-6 px-4 md:px-6 relative z-50">
-      <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-4">
           {/* Botão Hambúrguer para Celular e Tablet */}
           <button
