@@ -8,10 +8,9 @@
 
 O projeto foi desenvolvido com uma arquitetura desacoplada:
 * **Front-end:** React + Vite + Tailwind CSS
-* **Back-end:** Node.js + Express
-* **Banco de Dados:** SQLite
+* **Back-end:** Node.js + Express (Serverless via Vercel)
+* **Banco de Dados:** PostgreSQL (Supabase)
 * **Segurança:** JWT (JSON Web Tokens), Bcryptjs e Express Rate Limit
-
 ---
 
 ## 📦 Funcionalidades
