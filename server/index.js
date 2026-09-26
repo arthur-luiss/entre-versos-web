@@ -9,7 +9,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const SECRET_KEY = process.env.JWT_SECRET || '';
+const SECRET_KEY = process.env.JWT_SECRET || 'chave-secreta-padrao';
 
 app.use(cors());
 app.use(express.json());
@@ -56,6 +56,31 @@ async function initDb() {
         username TEXT UNIQUE,
         password TEXT
       );
+
+      -- Novas tabelas para o ecossistema de leitores (Com verificação IF NOT EXISTS)
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS likes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+        UNIQUE(user_id, post_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS comments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+      );
     `);
 
         // Sincroniza o administrador padrão configurado no .env
@@ -76,19 +101,37 @@ async function initDb() {
 
 initDb();
 
-function verifyToken(req, res, next) {
+// Middleware: Verifica Token do Administrador
+function verifyAdminToken(req, res, next) {
     const token = req.headers['authorization'];
     if (!token) return res.status(401).json({ error: 'Acesso negado.' });
-    const bearer = token.split(' ');
-    const bearerToken = bearer[1];
+    
+    const bearerToken = token.split(' ')[1];
     jwt.verify(bearerToken, SECRET_KEY, (err, decoded) => {
-        if (err) return res.status(403).json({ error: 'Token inválido ou expirado.' });
+        if (err || decoded.role !== 'admin') return res.status(403).json({ error: 'Token de administrador inválido ou expirado.' });
         req.admin = decoded;
         next();
     });
 }
 
-// --- ROTAS PÚBLICAS ---
+// Middleware: Verifica Token do Leitor (Usuário Público)
+function verifyUserToken(req, res, next) {
+    const token = req.headers['authorization'];
+    if (!token) return res.status(401).json({ error: 'Acesso negado. Faça login para continuar.' });
+    
+    const bearerToken = token.split(' ')[1];
+    jwt.verify(bearerToken, SECRET_KEY, (err, decoded) => {
+        if (err || decoded.role !== 'user') return res.status(403).json({ error: 'Sessão expirada. Faça login novamente.' });
+        req.user = decoded; // Salva os dados do leitor na requisição
+        next();
+    });
+}
+
+
+// ==========================================
+// ROTAS PÚBLICAS ORIGINAIS (Acervo e Textos)
+// ==========================================
+
 app.get('/api/posts', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM posts ORDER BY id DESC');
@@ -132,6 +175,7 @@ app.get('/api/hero', async (req, res) => {
     }
 });
 
+// Login do Administrador
 app.post('/api/login', loginLimiter, async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -142,15 +186,177 @@ app.post('/api/login', loginLimiter, async (req, res) => {
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
 
-        const token = jwt.sign({ id: user.id, username: user.username }, SECRET_KEY, { expiresIn: '2h' });
+        // Adicionando 'role' para diferenciar os tokens
+        const token = jwt.sign({ id: user.id, username: user.username, role: 'admin' }, SECRET_KEY, { expiresIn: '2h' });
         res.json({ message: 'Login realizado com sucesso!', token });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// --- ROTAS PROTEGIDAS (ADMIN) ---
-app.post('/api/posts', verifyToken, async (req, res) => {
+
+// ==========================================
+// ROTAS DE AUTENTICAÇÃO PÚBLICA (Leitores)
+// ==========================================
+
+app.post('/api/auth/register', async (req, res) => {
+    const { name, email, password } = req.body;
+    try {
+        // Verifica se o email já existe
+        const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (userCheck.rows.length > 0) return res.status(400).json({ error: 'Este e-mail já está em uso.' });
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const result = await pool.query(
+            'INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email',
+            [name, email, hashedPassword]
+        );
+
+        res.status(201).json({ message: 'Conta criada com sucesso!', user: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (result.rows.length === 0) return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
+
+        const user = result.rows[0];
+        const isValidPassword = await bcrypt.compare(password, user.password_hash);
+        if (!isValidPassword) return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
+
+        // Token do leitor com 'role: user'
+        const token = jwt.sign({ id: user.id, name: user.name, role: 'user' }, SECRET_KEY, { expiresIn: '7d' });
+        
+        res.json({ 
+            message: 'Login bem-sucedido!', 
+            token, 
+            user: { id: user.id, name: user.name, email: user.email } 
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// ==========================================
+// ROTAS DE INTERAÇÃO (Curtidas e Comentários)
+// ==========================================
+
+// Buscar total de likes de um post (E se o usuário logado curtiu)
+app.get('/api/posts/:id/likes', async (req, res) => {
+    const postId = req.params.id;
+    const userId = req.query.userId; // Enviado via query string se o usuário estiver logado
+    
+    try {
+        const totalResult = await pool.query('SELECT COUNT(*) FROM likes WHERE post_id = $1', [postId]);
+        let userLiked = false;
+
+        if (userId) {
+            const userLikeResult = await pool.query('SELECT id FROM likes WHERE post_id = $1 AND user_id = $2', [postId, userId]);
+            userLiked = userLikeResult.rows.length > 0;
+        }
+
+        res.json({ total: parseInt(totalResult.rows[0].count), userLiked });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Alternar Curtida (Like/Unlike) - Protegido
+app.post('/api/posts/:id/like', verifyUserToken, async (req, res) => {
+    const postId = req.params.id;
+    const userId = req.user.id;
+
+    try {
+        const existingLike = await pool.query('SELECT id FROM likes WHERE user_id = $1 AND post_id = $2', [userId, postId]);
+
+        if (existingLike.rows.length > 0) {
+            // Se já curtiu, remove o like (Descurtir)
+            await pool.query('DELETE FROM likes WHERE user_id = $1 AND post_id = $2', [userId, postId]);
+            return res.json({ message: 'Curtida removida', action: 'unliked' });
+        } else {
+            // Se não curtiu, adiciona
+            await pool.query('INSERT INTO likes (user_id, post_id) VALUES ($1, $2)', [userId, postId]);
+            return res.json({ message: 'Obra curtida', action: 'liked' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Buscar comentários de um post
+app.get('/api/posts/:id/comments', async (req, res) => {
+    const postId = req.params.id;
+    try {
+        // Fazemos um JOIN com a tabela users para trazer o nome de quem comentou
+        const result = await pool.query(`
+            SELECT c.id, c.content, c.created_at, c.user_id, u.name as author_name 
+            FROM comments c 
+            JOIN users u ON c.user_id = u.id 
+            WHERE c.post_id = $1 
+            ORDER BY c.created_at DESC
+        `, [postId]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Enviar comentário - Protegido
+app.post('/api/posts/:id/comments', verifyUserToken, async (req, res) => {
+    const postId = req.params.id;
+    const userId = req.user.id;
+    const { content } = req.body;
+
+    if (!content || content.trim().length === 0) {
+        return res.status(400).json({ error: 'O comentário não pode ser vazio.' });
+    }
+
+    try {
+        const result = await pool.query(
+            'INSERT INTO comments (user_id, post_id, content) VALUES ($1, $2, $3) RETURNING *',
+            [userId, postId, content]
+        );
+        res.status(201).json({ message: 'Comentário publicado!', comment: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Deletar um comentário - Protegido
+app.delete('/api/comments/:id', verifyUserToken, async (req, res) => {
+    const commentId = req.params.id;
+    const userId = req.user.id;
+
+    try {
+        // Verifica se o comentário pertence ao usuário que está pedindo para deletar
+        const comment = await pool.query('SELECT user_id FROM comments WHERE id = $1', [commentId]);
+        
+        if (comment.rows.length === 0) {
+            return res.status(404).json({ error: 'Comentário não encontrado.' });
+        }
+        
+        if (comment.rows[0].user_id !== userId) {
+            return res.status(403).json({ error: 'Você não tem permissão para apagar este comentário.' });
+        }
+
+        await pool.query('DELETE FROM comments WHERE id = $1', [commentId]);
+        res.json({ message: 'Comentário apagado com sucesso.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// ==========================================
+// ROTAS PROTEGIDAS (Painel do Administrador)
+// ==========================================
+
+app.post('/api/posts', verifyAdminToken, async (req, res) => {
     const { title, author, category, content, type } = req.body;
     try {
         const result = await pool.query(
@@ -163,7 +369,7 @@ app.post('/api/posts', verifyToken, async (req, res) => {
     }
 });
 
-app.delete('/api/posts/:id', verifyToken, async (req, res) => {
+app.delete('/api/posts/:id', verifyAdminToken, async (req, res) => {
     try {
         await pool.query('DELETE FROM posts WHERE id = $1', [req.params.id]);
         res.json({ message: 'Obra excluída com sucesso!' });
@@ -172,7 +378,7 @@ app.delete('/api/posts/:id', verifyToken, async (req, res) => {
     }
 });
 
-app.post('/api/quote', verifyToken, async (req, res) => {
+app.post('/api/quote', verifyAdminToken, async (req, res) => {
     const { content, author } = req.body;
     try {
         await pool.query('INSERT INTO quote (content, author) VALUES ($1, $2)', [content, author]);
@@ -182,7 +388,7 @@ app.post('/api/quote', verifyToken, async (req, res) => {
     }
 });
 
-app.post('/api/hero', verifyToken, async (req, res) => {
+app.post('/api/hero', verifyAdminToken, async (req, res) => {
     const { content } = req.body;
     try {
         await pool.query('INSERT INTO hero_banner (content) VALUES ($1)', [content]);
@@ -192,8 +398,7 @@ app.post('/api/hero', verifyToken, async (req, res) => {
     }
 });
 
-// Atualizar uma obra existente
-app.put('/api/posts/:id', verifyToken, async (req, res) => {
+app.put('/api/posts/:id', verifyAdminToken, async (req, res) => {
     const { id } = req.params;
     const { title, author, category, content, type } = req.body;
     try {
@@ -208,7 +413,11 @@ app.put('/api/posts/:id', verifyToken, async (req, res) => {
     }
 });
 
-// --- PRODUÇÃO ---
+
+// ==========================================
+// CONFIGURAÇÃO DE PRODUÇÃO E SERVERLESS
+// ==========================================
+
 app.use(express.static(path.join(__dirname, '../dist')));
 app.get(/(.*)/, (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'));
@@ -216,7 +425,7 @@ app.get(/(.*)/, (req, res) => {
 
 const serverless = require('serverless-http');
 
-// Se NÃO estiver na Vercel (ou seja, se estiver rodando no Render ou localmente), liga o servidor normal
+// Se NÃO estiver na Vercel, liga o servidor normal (Localhost)
 if (!process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`Servidor rodando na porta ${PORT}`);
