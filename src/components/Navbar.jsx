@@ -1,13 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 export function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     const theme = localStorage.getItem("theme");
@@ -15,6 +19,19 @@ export function Navbar() {
       setIsDark(true);
       document.documentElement.classList.add("dark");
     }
+  }, []);
+
+  // Fecha o menu do usuário ao clicar fora dele
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const toggleTheme = () => {
@@ -37,6 +54,12 @@ export function Navbar() {
       setSearchTerm("");
       setMobileMenuOpen(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setUserMenuOpen(false);
+    navigate("/");
   };
 
   const isActive = (path) => location.pathname === path;
@@ -155,6 +178,45 @@ export function Navbar() {
               </svg>
             )}
           </button>
+
+          {/* Área de Autenticação (Usuário) */}
+          {user ? (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 text-sm text-charcoal hover:opacity-70 transition-opacity"
+              >
+                <span className="w-7 h-7 rounded-full bg-terra text-white flex items-center justify-center text-xs font-bold">
+                  {user.name.charAt(0).toUpperCase()}
+                </span>
+                <span className="hidden sm:inline">
+                  Olá, {user.name.split(" ")[0]}
+                </span>
+              </button>
+
+              {/* Dropdown do Usuário */}
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-background border border-bordercolor rounded-lg shadow-lg py-2 text-sm">
+                  <p className="px-4 py-1 text-xs text-subtle truncate">
+                    {user.email}
+                  </p>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-terra hover:bg-bordercolor/30 transition-colors"
+                  >
+                    Sair da conta
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="text-sm text-terra font-medium px-3 py-1.5 rounded-full border border-terra/40 hover:bg-terra hover:text-white hover:border-terra transition-colors"
+            >
+              Entrar
+            </Link>
+          )}
         </div>
       </div>
 
@@ -182,6 +244,17 @@ export function Navbar() {
           >
             Sobre
           </Link>
+
+          {/* Link de Login no Mobile (se não logado) */}
+          {!user && (
+            <Link
+              to="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-terra font-medium pt-3 mt-1 border-t border-bordercolor"
+            >
+              Entrar
+            </Link>
+          )}
         </nav>
       )}
     </header>
