@@ -57,7 +57,7 @@ async function initDb() {
         password TEXT
       );
 
-      -- Novas tabelas para o ecossistema de leitores (Com verificação IF NOT EXISTS)
+      -- Novas tabelas para o ecossistema de leitores
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(255) NOT NULL,
@@ -105,7 +105,7 @@ initDb();
 function verifyAdminToken(req, res, next) {
     const token = req.headers['authorization'];
     if (!token) return res.status(401).json({ error: 'Acesso negado.' });
-    
+
     const bearerToken = token.split(' ')[1];
     jwt.verify(bearerToken, SECRET_KEY, (err, decoded) => {
         if (err || decoded.role !== 'admin') return res.status(403).json({ error: 'Token de administrador inválido ou expirado.' });
@@ -118,7 +118,7 @@ function verifyAdminToken(req, res, next) {
 function verifyUserToken(req, res, next) {
     const token = req.headers['authorization'];
     if (!token) return res.status(401).json({ error: 'Acesso negado. Faça login para continuar.' });
-    
+
     const bearerToken = token.split(' ')[1];
     jwt.verify(bearerToken, SECRET_KEY, (err, decoded) => {
         if (err || decoded.role !== 'user') return res.status(403).json({ error: 'Sessão expirada. Faça login novamente.' });
@@ -186,7 +186,6 @@ app.post('/api/login', loginLimiter, async (req, res) => {
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
 
-        // Adicionando 'role' para diferenciar os tokens
         const token = jwt.sign({ id: user.id, username: user.username, role: 'admin' }, SECRET_KEY, { expiresIn: '2h' });
         res.json({ message: 'Login realizado com sucesso!', token });
     } catch (err) {
@@ -202,7 +201,6 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
     const { name, email, password } = req.body;
     try {
-        // Verifica se o email já existe
         const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (userCheck.rows.length > 0) return res.status(400).json({ error: 'Este e-mail já está em uso.' });
 
@@ -228,14 +226,71 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
         const isValidPassword = await bcrypt.compare(password, user.password_hash);
         if (!isValidPassword) return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
 
-        // Token do leitor com 'role: user'
         const token = jwt.sign({ id: user.id, name: user.name, role: 'user' }, SECRET_KEY, { expiresIn: '7d' });
-        
-        res.json({ 
-            message: 'Login bem-sucedido!', 
-            token, 
-            user: { id: user.id, name: user.name, email: user.email } 
+
+        res.json({
+            message: 'Login bem-sucedido!',
+            token,
+            user: { id: user.id, name: user.name, email: user.email }
         });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// ==========================================
+// ROTAS DO PERFIL DO LEITOR (Histórico)
+// ==========================================
+
+// Buscar todas as obras curtidas pelo leitor
+app.get('/api/user/likes', verifyUserToken, async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const result = await pool.query(`
+            SELECT p.id, p.title, p.author, p.category, l.created_at as liked_at
+            FROM posts p
+            JOIN likes l ON p.id = l.post_id
+            WHERE l.user_id = $1
+            ORDER BY l.created_at DESC
+        `, [userId]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Buscar todos os comentários feitos pelo leitor
+app.get('/api/user/comments', verifyUserToken, async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const result = await pool.query(`
+            SELECT c.id, c.content, c.created_at, p.id as post_id, p.title as post_title
+            FROM comments c
+            JOIN posts p ON c.post_id = p.id
+            WHERE c.user_id = $1
+            ORDER BY c.created_at DESC
+        `, [userId]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Atualizar os dados do leitor (Nome ou Email)
+app.put('/api/user/profile', verifyUserToken, async (req, res) => {
+    const userId = req.user.id;
+    const { name, email } = req.body;
+    try {
+        // Verifica se o novo e-mail já pertence a outra pessoa
+        const emailCheck = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [email, userId]);
+        if (emailCheck.rows.length > 0) return res.status(400).json({ error: 'Este e-mail já está em uso por outra conta.' });
+
+        const result = await pool.query(
+            'UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING id, name, email',
+            [name, email, userId]
+        );
+        res.json({ message: 'Perfil atualizado com sucesso!', user: result.rows[0] });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -246,11 +301,10 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
 // ROTAS DE INTERAÇÃO (Curtidas e Comentários)
 // ==========================================
 
-// Buscar total de likes de um post (E se o usuário logado curtiu)
 app.get('/api/posts/:id/likes', async (req, res) => {
     const postId = req.params.id;
-    const userId = req.query.userId; // Enviado via query string se o usuário estiver logado
-    
+    const userId = req.query.userId;
+
     try {
         const totalResult = await pool.query('SELECT COUNT(*) FROM likes WHERE post_id = $1', [postId]);
         let userLiked = false;
@@ -266,7 +320,6 @@ app.get('/api/posts/:id/likes', async (req, res) => {
     }
 });
 
-// Alternar Curtida (Like/Unlike) - Protegido
 app.post('/api/posts/:id/like', verifyUserToken, async (req, res) => {
     const postId = req.params.id;
     const userId = req.user.id;
@@ -275,11 +328,9 @@ app.post('/api/posts/:id/like', verifyUserToken, async (req, res) => {
         const existingLike = await pool.query('SELECT id FROM likes WHERE user_id = $1 AND post_id = $2', [userId, postId]);
 
         if (existingLike.rows.length > 0) {
-            // Se já curtiu, remove o like (Descurtir)
             await pool.query('DELETE FROM likes WHERE user_id = $1 AND post_id = $2', [userId, postId]);
             return res.json({ message: 'Curtida removida', action: 'unliked' });
         } else {
-            // Se não curtiu, adiciona
             await pool.query('INSERT INTO likes (user_id, post_id) VALUES ($1, $2)', [userId, postId]);
             return res.json({ message: 'Obra curtida', action: 'liked' });
         }
@@ -288,11 +339,9 @@ app.post('/api/posts/:id/like', verifyUserToken, async (req, res) => {
     }
 });
 
-// Buscar comentários de um post
 app.get('/api/posts/:id/comments', async (req, res) => {
     const postId = req.params.id;
     try {
-        // Fazemos um JOIN com a tabela users para trazer o nome de quem comentou
         const result = await pool.query(`
             SELECT c.id, c.content, c.created_at, c.user_id, u.name as author_name 
             FROM comments c 
@@ -306,7 +355,6 @@ app.get('/api/posts/:id/comments', async (req, res) => {
     }
 });
 
-// Enviar comentário - Protegido
 app.post('/api/posts/:id/comments', verifyUserToken, async (req, res) => {
     const postId = req.params.id;
     const userId = req.user.id;
@@ -327,19 +375,17 @@ app.post('/api/posts/:id/comments', verifyUserToken, async (req, res) => {
     }
 });
 
-// Deletar um comentário - Protegido
 app.delete('/api/comments/:id', verifyUserToken, async (req, res) => {
     const commentId = req.params.id;
     const userId = req.user.id;
 
     try {
-        // Verifica se o comentário pertence ao usuário que está pedindo para deletar
         const comment = await pool.query('SELECT user_id FROM comments WHERE id = $1', [commentId]);
-        
+
         if (comment.rows.length === 0) {
             return res.status(404).json({ error: 'Comentário não encontrado.' });
         }
-        
+
         if (comment.rows[0].user_id !== userId) {
             return res.status(403).json({ error: 'Você não tem permissão para apagar este comentário.' });
         }
@@ -430,7 +476,7 @@ if (!process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`Servidor rodando na porta ${PORT}`);
     });
-}
+}   
 
 // Exporta para a Vercel (Serverless)
 module.exports = app;
