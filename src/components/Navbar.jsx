@@ -201,14 +201,24 @@ export function Navbar() {
                     {user.email}
                   </p>
 
-                  {/* Link do Perfil adicionado aqui */}
                   <Link
-                    to="/profile"
+                    to="/perfil"
                     onClick={() => setUserMenuOpen(false)}
                     className="block w-full text-left px-4 py-2 text-charcoal hover:bg-bordercolor/30 transition-colors"
                   >
                     Meu Perfil
                   </Link>
+
+                  {/* Dashboard: só aparece para contas administrativas */}
+                  {user.is_admin && (
+                    <Link
+                      to="/admin/dashboard"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="block w-full text-left px-4 py-2 text-charcoal hover:bg-bordercolor/30 transition-colors"
+                    >
+                      Dashboard
+                    </Link>
+                  )}
 
                   <button
                     onClick={handleLogout}
