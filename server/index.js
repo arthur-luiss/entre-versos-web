@@ -296,6 +296,24 @@ app.put('/api/user/profile', verifyUserToken, async (req, res) => {
     }
 });
 
+// Alterar a senha do leitor (não exige a senha atual, apenas a nova)
+app.put('/api/user/password', verifyUserToken, async (req, res) => {
+    const userId = req.user.id;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres.' });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashedPassword, userId]);
+        res.json({ message: 'Senha alterada com sucesso!' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 // ==========================================
 // ROTAS DE INTERAÇÃO (Curtidas e Comentários)
@@ -459,6 +477,36 @@ app.put('/api/posts/:id', verifyAdminToken, async (req, res) => {
     }
 });
 
+// Lista todos os comentários do site, com autor e obra, para moderação
+app.get('/api/admin/comments', verifyAdminToken, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT c.id, c.content, c.created_at, c.user_id, u.name as author_name, p.id as post_id, p.title as post_title
+            FROM comments c
+            JOIN users u ON c.user_id = u.id
+            JOIN posts p ON c.post_id = p.id
+            ORDER BY c.created_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Exclui qualquer comentário do site (moderação, sem restrição de autoria)
+app.delete('/api/admin/comments/:id', verifyAdminToken, async (req, res) => {
+    const commentId = req.params.id;
+    try {
+        const result = await pool.query('DELETE FROM comments WHERE id = $1 RETURNING id', [commentId]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Comentário não encontrado.' });
+        }
+        res.json({ message: 'Comentário removido pela moderação.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 // ==========================================
 // CONFIGURAÇÃO DE PRODUÇÃO E SERVERLESS
@@ -476,7 +524,7 @@ if (!process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`Servidor rodando na porta ${PORT}`);
     });
-}   
+}
 
 // Exporta para a Vercel (Serverless)
 module.exports = app;

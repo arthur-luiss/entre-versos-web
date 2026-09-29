@@ -18,6 +18,12 @@ export function Profile() {
   const [updateMessage, setUpdateMessage] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Estados para troca de senha
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
   const token = localStorage.getItem("@EntreVersos:token");
 
@@ -83,6 +89,48 @@ export function Profile() {
       setUpdateMessage("Erro na conexão com o servidor.");
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordMessage("");
+
+    if (newPassword.length < 6) {
+      setPasswordMessage("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage("As senhas não coincidem.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const response = await fetch(`${API_URL}/api/user/password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ newPassword }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setPasswordMessage("Senha alterada com sucesso!");
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => setPasswordMessage(""), 3000);
+      } else {
+        setPasswordMessage(data.error || "Erro ao alterar senha.");
+      }
+    } catch (err) {
+      setPasswordMessage("Erro na conexão com o servidor.");
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -213,52 +261,114 @@ export function Profile() {
 
             {/* Aba: Configurações */}
             {activeTab === "settings" && (
-              <div className="max-w-md bg-cardbg border border-bordercolor rounded-xl p-6">
-                <form
-                  onSubmit={handleUpdateProfile}
-                  className="flex flex-col gap-4"
-                >
-                  <div>
-                    <label className="text-sm font-medium text-charcoal block mb-1">
-                      Nome de leitor
-                    </label>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 bg-background border border-bordercolor rounded-xl text-charcoal focus:outline-none focus:border-terra transition-colors text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-charcoal block mb-1">
-                      E-mail
-                    </label>
-                    <input
-                      type="email"
-                      value={editEmail}
-                      onChange={(e) => setEditEmail(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 bg-background border border-bordercolor rounded-xl text-charcoal focus:outline-none focus:border-terra transition-colors text-sm"
-                    />
-                  </div>
-
-                  {updateMessage && (
-                    <div
-                      className={`p-3 text-sm rounded-lg ${updateMessage.includes("sucesso") ? "text-green-600 bg-green-500/10" : "text-red-500 bg-red-500/10"}`}
-                    >
-                      {updateMessage}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={isUpdating}
-                    className="mt-2 w-full bg-terra text-white font-medium py-3 rounded-xl hover:opacity-90 transition-opacity text-sm disabled:opacity-50"
+              <div className="max-w-md flex flex-col gap-6">
+                {/* Cartão: Dados de perfil */}
+                <div className="bg-cardbg border border-bordercolor rounded-xl p-6">
+                  <h2 className="text-sm font-semibold text-charcoal mb-4">
+                    Dados da conta
+                  </h2>
+                  <form
+                    onSubmit={handleUpdateProfile}
+                    className="flex flex-col gap-4"
                   >
-                    {isUpdating ? "Salvando..." : "Salvar Alterações"}
-                  </button>
-                </form>
+                    <div>
+                      <label className="text-sm font-medium text-charcoal block mb-1">
+                        Nome de leitor
+                      </label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 bg-background border border-bordercolor rounded-xl text-charcoal focus:outline-none focus:border-terra transition-colors text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-charcoal block mb-1">
+                        E-mail
+                      </label>
+                      <input
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 bg-background border border-bordercolor rounded-xl text-charcoal focus:outline-none focus:border-terra transition-colors text-sm"
+                      />
+                    </div>
+
+                    {updateMessage && (
+                      <div
+                        className={`p-3 text-sm rounded-lg ${updateMessage.includes("sucesso") ? "text-green-600 bg-green-500/10" : "text-red-500 bg-red-500/10"}`}
+                      >
+                        {updateMessage}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isUpdating}
+                      className="mt-2 w-full bg-terra text-white font-medium py-3 rounded-xl hover:opacity-90 transition-opacity text-sm disabled:opacity-50"
+                    >
+                      {isUpdating ? "Salvando..." : "Salvar Alterações"}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Cartão: Alterar senha */}
+                <div className="bg-cardbg border border-bordercolor rounded-xl p-6">
+                  <h2 className="text-sm font-semibold text-charcoal mb-4">
+                    Alterar senha
+                  </h2>
+                  <form
+                    onSubmit={handleChangePassword}
+                    className="flex flex-col gap-4"
+                  >
+                    <div>
+                      <label className="text-sm font-medium text-charcoal block mb-1">
+                        Nova senha
+                      </label>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        minLength="6"
+                        className="w-full px-4 py-3 bg-background border border-bordercolor rounded-xl text-charcoal focus:outline-none focus:border-terra transition-colors text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-charcoal block mb-1">
+                        Confirmar nova senha
+                      </label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        minLength="6"
+                        className="w-full px-4 py-3 bg-background border border-bordercolor rounded-xl text-charcoal focus:outline-none focus:border-terra transition-colors text-sm"
+                      />
+                    </div>
+
+                    {passwordMessage && (
+                      <div
+                        className={`p-3 text-sm rounded-lg ${passwordMessage.includes("sucesso") ? "text-green-600 bg-green-500/10" : "text-red-500 bg-red-500/10"}`}
+                      >
+                        {passwordMessage}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isChangingPassword}
+                      className="mt-2 w-full bg-terra text-white font-medium py-3 rounded-xl hover:opacity-90 transition-opacity text-sm disabled:opacity-50"
+                    >
+                      {isChangingPassword ? "Alterando..." : "Alterar Senha"}
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
           </div>
