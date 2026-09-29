@@ -7,6 +7,11 @@ export function AdminLogin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isDark, setIsDark] = useState(false);
+
+  // Segunda etapa: PIN de administrador
+  const [requiresAdminPin, setRequiresAdminPin] = useState(false);
+  const [adminPin, setAdminPin] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,13 +40,24 @@ export function AdminLogin() {
     setLoading(true);
 
     try {
+      const payload = requiresAdminPin
+        ? { username, password, adminPin }
+        : { username, password };
+
       const response = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
+
+      // Credenciais corretas, mas falta o PIN: avança para a segunda etapa
+      if (response.status === 428 && data.requiresAdminPin) {
+        setRequiresAdminPin(true);
+        setError("");
+        return;
+      }
 
       if (response.ok) {
         localStorage.setItem("adminToken", data.token);
@@ -55,6 +71,12 @@ export function AdminLogin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBack = () => {
+    setRequiresAdminPin(false);
+    setAdminPin("");
+    setError("");
   };
 
   return (
@@ -107,7 +129,7 @@ export function AdminLogin() {
             Entre Versos
           </Link>
           <h1 className="text-sm font-semibold uppercase tracking-wider text-subtle">
-            Painel Administrativo
+            {requiresAdminPin ? "Verificação adicional" : "Painel Administrativo"}
           </h1>
         </div>
 
@@ -118,41 +140,80 @@ export function AdminLogin() {
         )}
 
         <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
-              Usuário
-            </label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              placeholder="Digite seu usuário"
-              className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
-            />
-          </div>
+          {requiresAdminPin ? (
+            <>
+              <p className="text-xs text-subtle text-center -mt-1 mb-1">
+                Informe o PIN de administrador para concluir o login.
+              </p>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                  PIN de administrador
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  value={adminPin}
+                  onChange={(e) => setAdminPin(e.target.value)}
+                  required
+                  autoFocus
+                  placeholder="••••••"
+                  className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors text-center tracking-[0.5em] text-lg"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                  Usuário
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  placeholder="Digite seu usuário"
+                  className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
+                />
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
-              Senha
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                  Senha
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
+                />
+              </div>
+            </>
+          )}
 
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-terra text-white font-medium py-3 rounded-xl hover:opacity-90 transition-opacity text-sm mt-2 disabled:opacity-50"
           >
-            {loading ? "Entrando..." : "Entrar no Painel"}
+            {loading
+              ? "Entrando..."
+              : requiresAdminPin
+                ? "Confirmar PIN"
+                : "Entrar no Painel"}
           </button>
+
+          {requiresAdminPin && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="w-full text-xs text-subtle hover:text-charcoal transition-colors"
+            >
+              ← Voltar
+            </button>
+          )}
         </form>
 
         <div className="text-center mt-6">

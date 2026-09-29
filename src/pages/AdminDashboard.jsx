@@ -9,7 +9,11 @@ const TABS = [
 ];
 
 export function AdminDashboard() {
-  const token = localStorage.getItem("adminToken");
+  // Aceita tanto o token do login legado (/admin) quanto o do login
+  // unificado (quando a conta de leitor tem is_admin = true)
+  const legacyAdminToken = localStorage.getItem("adminToken");
+  const unifiedToken = localStorage.getItem("@EntreVersos:token");
+  const token = legacyAdminToken || unifiedToken;
 
   if (!token) {
     return <Navigate to="/admin" replace />;
@@ -91,8 +95,12 @@ export function AdminDashboard() {
   };
 
   const handleLogout = () => {
+    // Limpa qualquer sessão administrativa ativa, seja ela do login legado
+    // ou do login unificado, e volta para a página inicial
     localStorage.removeItem("adminToken");
-    navigate("/admin");
+    localStorage.removeItem("@EntreVersos:token");
+    localStorage.removeItem("@EntreVersos:user");
+    navigate("/");
   };
 
   const handleAuthError = (status) => {
