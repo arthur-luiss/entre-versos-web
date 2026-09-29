@@ -200,6 +200,16 @@ export function Navbar() {
                   <p className="px-4 py-1 text-xs text-subtle truncate">
                     {user.email}
                   </p>
+
+                  {/* Link do Perfil adicionado aqui */}
+                  <Link
+                    to="/profile"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block w-full text-left px-4 py-2 text-charcoal hover:bg-bordercolor/30 transition-colors"
+                  >
+                    Meu Perfil
+                  </Link>
+
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-2 text-terra hover:bg-bordercolor/30 transition-colors"

@@ -9,6 +9,7 @@ import { AdminDashboard } from "./pages/AdminDashboard";
 import { Privacy } from "./pages/Privacy";
 import { Terms } from "./pages/Terms";
 import { Login } from "./pages/Login";
+import { Profile } from "./pages/Profile";
 
 export function App() {
   return (
@@ -24,6 +25,7 @@ export function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
