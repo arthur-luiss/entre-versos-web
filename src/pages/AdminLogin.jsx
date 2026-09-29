@@ -157,7 +157,7 @@ export function AdminLogin() {
                   required
                   autoFocus
                   placeholder="••••••"
-                  className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors text-center tracking-[0.5em] text-lg"
+                  className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm: 0.875rem text-charcoal focus:outline-none focus:border-terra transition-colors text-center tracking-[0.5em] text-lg"
                 />
               </div>
             </>
