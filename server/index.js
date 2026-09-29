@@ -10,6 +10,12 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const SECRET_KEY = process.env.JWT_SECRET || 'chave-secreta-padrao';
+const ADMIN_PIN = process.env.ADMIN_PIN || null;
+
+// Verifica se o PIN de administrador informado bate com o configurado no .env
+function isValidAdminPin(pin) {
+    return !!ADMIN_PIN && !!pin && String(pin) === String(ADMIN_PIN);
+}
 
 app.use(cors());
 app.use(express.json());
@@ -63,8 +69,12 @@ async function initDb() {
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
+        is_admin BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
       );
+
+      -- Garante a coluna is_admin mesmo em bancos já existentes (criados antes desta versão)
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
 
       CREATE TABLE IF NOT EXISTS likes (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -81,6 +91,11 @@ async function initDb() {
         content TEXT NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
       );
+    `);
+
+        // Garante a coluna is_admin em bancos já existentes (login administrativo unificado)
+        await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
     `);
 
         // Sincroniza o administrador padrão configurado no .env
@@ -101,14 +116,20 @@ async function initDb() {
 
 initDb();
 
-// Middleware: Verifica Token do Administrador
+// Middleware: Verifica Token do Administrador (aceita tanto o login legado /admin
+// quanto o login unificado de leitor com is_admin = true)
 function verifyAdminToken(req, res, next) {
     const token = req.headers['authorization'];
     if (!token) return res.status(401).json({ error: 'Acesso negado.' });
 
     const bearerToken = token.split(' ')[1];
     jwt.verify(bearerToken, SECRET_KEY, (err, decoded) => {
-        if (err || decoded.role !== 'admin') return res.status(403).json({ error: 'Token de administrador inválido ou expirado.' });
+        const isLegacyAdmin = decoded && decoded.role === 'admin';
+        const isUnifiedAdmin = decoded && decoded.role === 'user' && decoded.is_admin === true;
+
+        if (err || !(isLegacyAdmin || isUnifiedAdmin)) {
+            return res.status(403).json({ error: 'Token de administrador inválido ou expirado.' });
+        }
         req.admin = decoded;
         next();
     });
@@ -175,9 +196,9 @@ app.get('/api/hero', async (req, res) => {
     }
 });
 
-// Login do Administrador
+// Login do Administrador (legado, via página /admin)
 app.post('/api/login', loginLimiter, async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, adminPin } = req.body;
     try {
         const result = await pool.query('SELECT * FROM admins WHERE username = $1', [username]);
         if (result.rows.length === 0) return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
@@ -185,6 +206,17 @@ app.post('/api/login', loginLimiter, async (req, res) => {
         const user = result.rows[0];
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
+
+        // Segunda etapa: exige o PIN de administrador antes de emitir o token
+        if (!adminPin) {
+            return res.status(428).json({
+                requiresAdminPin: true,
+                message: 'Informe o PIN de administrador para continuar.',
+            });
+        }
+        if (!isValidAdminPin(adminPin)) {
+            return res.status(401).json({ error: 'PIN de administrador incorreto.' });
+        }
 
         const token = jwt.sign({ id: user.id, username: user.username, role: 'admin' }, SECRET_KEY, { expiresIn: '2h' });
         res.json({ message: 'Login realizado com sucesso!', token });
@@ -217,7 +249,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 app.post('/api/auth/login', loginLimiter, async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, adminPin } = req.body;
     try {
         const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (result.rows.length === 0) return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
@@ -226,12 +258,29 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
         const isValidPassword = await bcrypt.compare(password, user.password_hash);
         if (!isValidPassword) return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
 
-        const token = jwt.sign({ id: user.id, name: user.name, role: 'user' }, SECRET_KEY, { expiresIn: '7d' });
+        // Conta administrativa: exige uma segunda etapa com o PIN antes de emitir o token
+        if (user.is_admin) {
+            if (!adminPin) {
+                return res.status(428).json({
+                    requiresAdminPin: true,
+                    message: 'Informe o PIN de administrador para continuar.',
+                });
+            }
+            if (!isValidAdminPin(adminPin)) {
+                return res.status(401).json({ error: 'PIN de administrador incorreto.' });
+            }
+        }
+
+        const token = jwt.sign(
+            { id: user.id, name: user.name, role: 'user', is_admin: !!user.is_admin },
+            SECRET_KEY,
+            { expiresIn: user.is_admin ? '2h' : '7d' }
+        );
 
         res.json({
             message: 'Login bem-sucedido!',
             token,
-            user: { id: user.id, name: user.name, email: user.email }
+            user: { id: user.id, name: user.name, email: user.email, is_admin: !!user.is_admin }
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -524,7 +573,7 @@ if (!process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`Servidor rodando na porta ${PORT}`);
     });
-}
+}   
 
 // Exporta para a Vercel (Serverless)
 module.exports = app;
