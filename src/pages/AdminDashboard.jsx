@@ -30,6 +30,11 @@ export function AdminDashboard() {
   const [heroContent, setHeroContent] = useState("");
   const [heroStatus, setHeroStatus] = useState("");
 
+  // Estados: Moderação de Comentários
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [deletingCommentId, setDeletingCommentId] = useState(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -75,10 +80,6 @@ export function AdminDashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
     navigate("/admin");
@@ -87,6 +88,31 @@ export function AdminDashboard() {
   const handleAuthError = (status) => {
     if (status === 401 || status === 403) handleLogout();
   };
+
+  // Busca todos os comentários do site para moderação
+  const fetchComments = async () => {
+    setCommentsLoading(true);
+    try {
+      const response = await fetch("/api/admin/comments", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data);
+      } else {
+        handleAuthError(response.status);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar comentários:", error);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    fetchComments();
+  }, []);
 
   // Funções de Submit (Criação ou Edição)
   const handleSubmit = async (e) => {
@@ -210,6 +236,34 @@ export function AdminDashboard() {
     }
   };
 
+  // Exclui um comentário (moderação)
+  const handleDeleteComment = async (commentId) => {
+    if (
+      !window.confirm(
+        "Deseja excluir este comentário? Esta ação não pode ser desfeita.",
+      )
+    )
+      return;
+
+    setDeletingCommentId(commentId);
+    try {
+      const response = await fetch(`/api/admin/comments/${commentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+      } else {
+        handleAuthError(response.status);
+        alert("Erro ao excluir comentário.");
+      }
+    } catch (error) {
+      alert("Erro de conexão.");
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans text-charcoal transition-colors duration-500">
       <header className="w-full bg-cardbg transition-colors duration-500 border-b border-bordercolor py-4 px-6 md:px-8 flex items-center justify-between">
@@ -229,12 +283,32 @@ export function AdminDashboard() {
             aria-label="Alternar tema"
           >
             {isDark ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                />
               </svg>
             ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                />
               </svg>
             )}
           </button>
@@ -484,6 +558,70 @@ export function AdminDashboard() {
                       className="text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900 px-4 py-2 rounded-lg transition-colors"
                     >
                       Excluir
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Moderação de Comentários */}
+        <div>
+          <div className="mb-6 flex items-center justify-between border-b border-bordercolor pb-4">
+            <h2 className="font-serif text-xl md:text-2xl font-semibold text-charcoal">
+              Moderação de Comentários
+            </h2>
+            {!commentsLoading && (
+              <span className="text-xs bg-cardbg border border-bordercolor px-2.5 py-1 rounded-md text-subtle font-medium shrink-0">
+                {comments.length}
+              </span>
+            )}
+          </div>
+
+          {commentsLoading ? (
+            <p className="text-subtle text-sm">Carregando comentários...</p>
+          ) : comments.length === 0 ? (
+            <p className="text-subtle text-sm">
+              Nenhum comentário para moderar.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <div
+                  key={comment.id}
+                  className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4 hover:shadow-sm"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-serif font-semibold text-charcoal">
+                        {comment.author_name}
+                      </span>
+                      <span className="text-xs text-subtle">
+                        {new Date(comment.created_at).toLocaleDateString(
+                          "pt-BR",
+                        )}
+                      </span>
+                    </div>
+                    <p className="text-sm text-charcoal mb-2 break-words">
+                      {comment.content}
+                    </p>
+                    <p className="text-xs text-subtle">
+                      Em:{" "}
+                      <span className="text-terra font-medium">
+                        {comment.post_title || "Obra removida"}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 self-end sm:self-start shrink-0">
+                    <button
+                      onClick={() => handleDeleteComment(comment.id)}
+                      disabled={deletingCommentId === comment.id}
+                      className="text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {deletingCommentId === comment.id
+                        ? "Excluindo..."
+                        : "Excluir"}
                     </button>
                   </div>
                 </div>
