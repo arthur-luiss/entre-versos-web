@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
 
+const TABS = [
+  { id: "banner", label: "Banner Principal" },
+  { id: "frase", label: "Frase do Dia" },
+  { id: "obras", label: "Obras" },
+  { id: "comentarios", label: "Comentários" },
+];
+
 export function AdminDashboard() {
   const token = localStorage.getItem("adminToken");
 
@@ -10,6 +17,9 @@ export function AdminDashboard() {
 
   // Estados: Tema Escuro
   const [isDark, setIsDark] = useState(false);
+
+  // Estados: Navegação (abas do painel)
+  const [activeTab, setActiveTab] = useState("banner");
 
   // Estados: Obras
   const [editingId, setEditingId] = useState(null);
@@ -159,7 +169,7 @@ export function AdminDashboard() {
     setCategory(post.category || "SAUDADE");
     setContent(post.content || "");
     setType(post.type || "poema");
-    window.scrollTo({ top: 400, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleCancelEdit = () => {
@@ -283,32 +293,12 @@ export function AdminDashboard() {
             aria-label="Alternar tema"
           >
             {isDark ? (
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                />
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
             ) : (
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                />
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
             )}
           </button>
@@ -328,308 +318,346 @@ export function AdminDashboard() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl mx-auto px-4 md:px-6 py-12 w-full space-y-16">
-        {/* Banner Principal */}
-        <div>
-          <div className="mb-6">
-            <h1 className="font-serif text-2xl md:text-3xl font-semibold text-charcoal">
-              Mensagem de Boas-vindas
-            </h1>
-            <p className="text-xs md:text-sm text-subtle mt-1">
-              Altere o texto grande exibido no topo da página inicial.
-            </p>
-          </div>
-          <form
-            onSubmit={handleSaveHero}
-            className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-3xl p-6 md:p-10 shadow-sm space-y-6"
-          >
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
-                Texto do Banner
-              </label>
-              <textarea
-                rows="2"
-                value={heroContent}
-                onChange={(e) => setHeroContent(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors font-serif leading-relaxed"
-              ></textarea>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-bordercolor gap-3">
-              <span className="text-sm font-medium text-terra">
-                {heroStatus}
-              </span>
+      <div className="flex-1 w-full max-w-6xl mx-auto flex flex-col md:flex-row gap-6 md:gap-10 px-4 md:px-6 py-8 md:py-12">
+        {/* Navegação lateral entre seções do painel */}
+        <aside className="md:w-56 shrink-0">
+          <nav className="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible -mx-1 px-1 md:mx-0 md:px-0 pb-2 md:pb-0 sticky top-0 md:top-6 bg-background z-10">
+            {TABS.map((tab) => (
               <button
-                type="submit"
-                className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm w-full sm:w-auto"
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`shrink-0 flex items-center justify-between gap-2 text-left text-sm font-medium px-4 py-2.5 rounded-xl transition-colors whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? "bg-terra text-white"
+                    : "text-subtle hover:bg-cardbg hover:text-charcoal border border-transparent hover:border-bordercolor"
+                }`}
               >
-                Atualizar Banner
+                {tab.label}
+                {tab.id === "comentarios" && !commentsLoading && (
+                  <span
+                    className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${
+                      activeTab === "comentarios"
+                        ? "bg-white/20 text-white"
+                        : "bg-cardbg border border-bordercolor text-subtle"
+                    }`}
+                  >
+                    {comments.length}
+                  </span>
+                )}
               </button>
-            </div>
-          </form>
-        </div>
+            ))}
+          </nav>
+        </aside>
 
-        {/* Frase do Dia */}
-        <div>
-          <div className="mb-6">
-            <h1 className="font-serif text-2xl md:text-3xl font-semibold text-charcoal">
-              Frase do Dia
-            </h1>
-          </div>
-          <form
-            onSubmit={handleSaveQuote}
-            className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-3xl p-6 md:p-10 shadow-sm space-y-6"
-          >
+        {/* Conteúdo da aba selecionada */}
+        <main className="flex-1 min-w-0 space-y-16">
+          {/* Banner Principal */}
+          {activeTab === "banner" && (
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
-                Texto da Frase
-              </label>
-              <textarea
-                rows="3"
-                value={quoteContent}
-                onChange={(e) => setQuoteContent(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors font-serif leading-relaxed"
-              ></textarea>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
-                Autor / Origem
-              </label>
-              <input
-                type="text"
-                value={quoteAuthor}
-                onChange={(e) => setQuoteAuthor(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-bordercolor gap-3">
-              <span className="text-sm font-medium text-terra">
-                {quoteStatus}
-              </span>
-              <button
-                type="submit"
-                className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm w-full sm:w-auto"
-              >
-                Atualizar Frase
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Nova Publicação / Edição */}
-        <div>
-          <div className="mb-6 flex items-center justify-between">
-            <h1 className="font-serif text-2xl md:text-3xl font-semibold text-charcoal">
-              {editingId ? "Editar Obra" : "Nova Publicação"}
-            </h1>
-            {editingId && (
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="text-xs font-semibold text-subtle hover:text-charcoal bg-cardbg border border-bordercolor px-3 py-1.5 rounded-lg transition-colors"
-              >
-                Cancelar Edição
-              </button>
-            )}
-          </div>
-          <form
-            onSubmit={handleSubmit}
-            className={`bg-cardbg duration-500 border rounded-3xl p-6 md:p-10 shadow-sm space-y-6 transition-colors ${
-              editingId ? "border-terra" : "border-bordercolor"
-            }`}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
-                  Tipo
-                </label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
-                >
-                  <option value="poema">Poema</option>
-                  <option value="frase">Frase</option>
-                </select>
+              <div className="mb-6">
+                <h1 className="font-serif text-2xl md:text-3xl font-semibold text-charcoal">
+                  Mensagem de Boas-vindas
+                </h1>
+                <p className="text-xs md:text-sm text-subtle mt-1">
+                  Altere o texto grande exibido no topo da página inicial.
+                </p>
               </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
-                  Categoria
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
-                >
-                  <option value="SAUDADE">Saudade</option>
-                  <option value="REFLEXÃO">Reflexão</option>
-                  <option value="VIDA">Vida</option>
-                  <option value="AMOR">Amor</option>
-                  <option value="SUPERAÇÃO">Superação</option>
-                  <option value="SOLIDÃO">Solidão</option>
-                  <option value="ESPERANÇA">Esperança</option>
-                  <option value="PAZ">Paz</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
-                  Autor
-                </label>
-                <input
-                  type="text"
-                  value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
-                Título
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
-                Texto / Versos
-              </label>
-              <textarea
-                rows="6"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors font-serif leading-relaxed"
-              ></textarea>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-bordercolor gap-3">
-              <span className="text-sm font-medium text-terra">{status}</span>
-              <button
-                type="submit"
-                className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm w-full sm:w-auto"
+              <form
+                onSubmit={handleSaveHero}
+                className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-3xl p-6 md:p-10 shadow-sm space-y-6"
               >
-                {editingId ? "Salvar alterações" : "Publicar obra"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Lista de Obras Publicadas com botão de Editar */}
-        <div>
-          <h2 className="font-serif text-xl md:text-2xl font-semibold text-charcoal mb-6 border-b border-bordercolor pb-4">
-            Obras Publicadas
-          </h2>
-          {posts.length === 0 ? (
-            <p className="text-subtle text-sm">
-              Nenhuma obra cadastrada ainda.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <div
-                  key={post.id}
-                  className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-sm"
-                >
-                  <div>
-                    <h3 className="font-serif font-semibold text-charcoal">
-                      {post.title}
-                    </h3>
-                    <p className="text-xs text-subtle mt-1">
-                      {post.author} • {post.category}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <button
-                      onClick={() => handleEditClick(post)}
-                      className="text-xs font-semibold text-charcoal bg-background border border-bordercolor hover:border-terra px-4 py-2 rounded-lg transition-colors"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(post.id)}
-                      className="text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900 px-4 py-2 rounded-lg transition-colors"
-                    >
-                      Excluir
-                    </button>
-                  </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                    Texto do Banner
+                  </label>
+                  <textarea
+                    rows="2"
+                    value={heroContent}
+                    onChange={(e) => setHeroContent(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors font-serif leading-relaxed"
+                  ></textarea>
                 </div>
-              ))}
+                <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-bordercolor gap-3">
+                  <span className="text-sm font-medium text-terra">
+                    {heroStatus}
+                  </span>
+                  <button
+                    type="submit"
+                    className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm w-full sm:w-auto"
+                  >
+                    Atualizar Banner
+                  </button>
+                </div>
+              </form>
             </div>
           )}
-        </div>
 
-        {/* Moderação de Comentários */}
-        <div>
-          <div className="mb-6 flex items-center justify-between border-b border-bordercolor pb-4">
-            <h2 className="font-serif text-xl md:text-2xl font-semibold text-charcoal">
-              Moderação de Comentários
-            </h2>
-            {!commentsLoading && (
-              <span className="text-xs bg-cardbg border border-bordercolor px-2.5 py-1 rounded-md text-subtle font-medium shrink-0">
-                {comments.length}
-              </span>
-            )}
-          </div>
+          {/* Frase do Dia */}
+          {activeTab === "frase" && (
+            <div>
+              <div className="mb-6">
+                <h1 className="font-serif text-2xl md:text-3xl font-semibold text-charcoal">
+                  Frase do Dia
+                </h1>
+              </div>
+              <form
+                onSubmit={handleSaveQuote}
+                className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-3xl p-6 md:p-10 shadow-sm space-y-6"
+              >
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                    Texto da Frase
+                  </label>
+                  <textarea
+                    rows="3"
+                    value={quoteContent}
+                    onChange={(e) => setQuoteContent(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors font-serif leading-relaxed"
+                  ></textarea>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                    Autor / Origem
+                  </label>
+                  <input
+                    type="text"
+                    value={quoteAuthor}
+                    onChange={(e) => setQuoteAuthor(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-bordercolor gap-3">
+                  <span className="text-sm font-medium text-terra">
+                    {quoteStatus}
+                  </span>
+                  <button
+                    type="submit"
+                    className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm w-full sm:w-auto"
+                  >
+                    Atualizar Frase
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
-          {commentsLoading ? (
-            <p className="text-subtle text-sm">Carregando comentários...</p>
-          ) : comments.length === 0 ? (
-            <p className="text-subtle text-sm">
-              Nenhum comentário para moderar.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {comments.map((comment) => (
-                <div
-                  key={comment.id}
-                  className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4 hover:shadow-sm"
+          {/* Obras: formulário de criação/edição + lista publicada */}
+          {activeTab === "obras" && (
+            <>
+              <div>
+                <div className="mb-6 flex items-center justify-between">
+                  <h1 className="font-serif text-2xl md:text-3xl font-semibold text-charcoal">
+                    {editingId ? "Editar Obra" : "Nova Publicação"}
+                  </h1>
+                  {editingId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="text-xs font-semibold text-subtle hover:text-charcoal bg-cardbg border border-bordercolor px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Cancelar Edição
+                    </button>
+                  )}
+                </div>
+                <form
+                  onSubmit={handleSubmit}
+                  className={`bg-cardbg duration-500 border rounded-3xl p-6 md:p-10 shadow-sm space-y-6 transition-colors ${
+                    editingId ? "border-terra" : "border-bordercolor"
+                  }`}
                 >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-serif font-semibold text-charcoal">
-                        {comment.author_name}
-                      </span>
-                      <span className="text-xs text-subtle">
-                        {new Date(comment.created_at).toLocaleDateString(
-                          "pt-BR",
-                        )}
-                      </span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                        Tipo
+                      </label>
+                      <select
+                        value={type}
+                        onChange={(e) => setType(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
+                      >
+                        <option value="poema">Poema</option>
+                        <option value="frase">Frase</option>
+                      </select>
                     </div>
-                    <p className="text-sm text-charcoal mb-2 break-words">
-                      {comment.content}
-                    </p>
-                    <p className="text-xs text-subtle">
-                      Em:{" "}
-                      <span className="text-terra font-medium">
-                        {comment.post_title || "Obra removida"}
-                      </span>
-                    </p>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                        Categoria
+                      </label>
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
+                      >
+                        <option value="SAUDADE">Saudade</option>
+                        <option value="REFLEXÃO">Reflexão</option>
+                        <option value="VIDA">Vida</option>
+                        <option value="AMOR">Amor</option>
+                        <option value="SUPERAÇÃO">Superação</option>
+                        <option value="SOLIDÃO">Solidão</option>
+                        <option value="ESPERANÇA">Esperança</option>
+                        <option value="PAZ">Paz</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                        Autor
+                      </label>
+                      <input
+                        type="text"
+                        value={author}
+                        onChange={(e) => setAuthor(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 self-end sm:self-start shrink-0">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                      Título
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-subtle mb-2">
+                      Texto / Versos
+                    </label>
+                    <textarea
+                      rows="6"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-bordercolor bg-background text-sm text-charcoal focus:outline-none focus:border-terra transition-colors font-serif leading-relaxed"
+                    ></textarea>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-bordercolor gap-3">
+                    <span className="text-sm font-medium text-terra">{status}</span>
                     <button
-                      onClick={() => handleDeleteComment(comment.id)}
-                      disabled={deletingCommentId === comment.id}
-                      className="text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                      type="submit"
+                      className="bg-terra text-white font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm w-full sm:w-auto"
                     >
-                      {deletingCommentId === comment.id
-                        ? "Excluindo..."
-                        : "Excluir"}
+                      {editingId ? "Salvar alterações" : "Publicar obra"}
                     </button>
                   </div>
+                </form>
+              </div>
+
+              <div>
+                <h2 className="font-serif text-xl md:text-2xl font-semibold text-charcoal mb-6 border-b border-bordercolor pb-4">
+                  Obras Publicadas
+                </h2>
+                {posts.length === 0 ? (
+                  <p className="text-subtle text-sm">
+                    Nenhuma obra cadastrada ainda.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {posts.map((post) => (
+                      <div
+                        key={post.id}
+                        className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-sm"
+                      >
+                        <div>
+                          <h3 className="font-serif font-semibold text-charcoal">
+                            {post.title}
+                          </h3>
+                          <p className="text-xs text-subtle mt-1">
+                            {post.author} • {post.category}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          <button
+                            onClick={() => handleEditClick(post)}
+                            className="text-xs font-semibold text-charcoal bg-background border border-bordercolor hover:border-terra px-4 py-2 rounded-lg transition-colors"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDelete(post.id)}
+                            className="text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900 px-4 py-2 rounded-lg transition-colors"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Moderação de Comentários */}
+          {activeTab === "comentarios" && (
+            <div>
+              <div className="mb-6 flex items-center justify-between border-b border-bordercolor pb-4">
+                <h2 className="font-serif text-xl md:text-2xl font-semibold text-charcoal">
+                  Moderação de Comentários
+                </h2>
+                {!commentsLoading && (
+                  <span className="text-xs bg-cardbg border border-bordercolor px-2.5 py-1 rounded-md text-subtle font-medium shrink-0">
+                    {comments.length}
+                  </span>
+                )}
+              </div>
+
+              {commentsLoading ? (
+                <p className="text-subtle text-sm">Carregando comentários...</p>
+              ) : comments.length === 0 ? (
+                <p className="text-subtle text-sm">
+                  Nenhum comentário para moderar.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="bg-cardbg transition-colors duration-500 border border-bordercolor rounded-xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4 hover:shadow-sm"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="font-serif font-semibold text-charcoal">
+                            {comment.author_name}
+                          </span>
+                          <span className="text-xs text-subtle">
+                            {new Date(comment.created_at).toLocaleDateString("pt-BR")}
+                          </span>
+                        </div>
+                        <p className="text-sm text-charcoal mb-2 break-words">
+                          {comment.content}
+                        </p>
+                        <p className="text-xs text-subtle">
+                          Em:{" "}
+                          <span className="text-terra font-medium">
+                            {comment.post_title || "Obra removida"}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 self-end sm:self-start shrink-0">
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          disabled={deletingCommentId === comment.id}
+                          className="text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {deletingCommentId === comment.id ? "Excluindo..." : "Excluir"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
