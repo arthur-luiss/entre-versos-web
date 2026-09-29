@@ -320,16 +320,16 @@ export function AdminDashboard() {
 
       <div className="flex-1 w-full max-w-6xl mx-auto flex flex-col md:flex-row gap-6 md:gap-10 px-4 md:px-6 py-8 md:py-12">
         {/* Navegação lateral entre seções do painel */}
-        <aside className="md:w-56 shrink-0">
-          <nav className="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible -mx-1 px-1 md:mx-0 md:px-0 pb-2 md:pb-0 sticky top-0 md:top-6 bg-background z-10">
+        <aside className="md:w-60 shrink-0">
+          <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible bg-cardbg border border-bordercolor rounded-2xl p-2 md:p-2.5 sticky top-0 md:top-6 z-10">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 flex items-center justify-between gap-2 text-left text-sm font-medium px-4 py-2.5 rounded-xl transition-colors whitespace-nowrap ${
+                className={`w-full shrink-0 flex items-center justify-between gap-2 text-left text-sm font-medium px-4 py-2.5 rounded-xl transition-colors whitespace-nowrap ${
                   activeTab === tab.id
                     ? "bg-terra text-white"
-                    : "text-subtle hover:bg-cardbg hover:text-charcoal border border-transparent hover:border-bordercolor"
+                    : "text-subtle hover:bg-background hover:text-charcoal"
                 }`}
               >
                 {tab.label}
@@ -338,7 +338,7 @@ export function AdminDashboard() {
                     className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${
                       activeTab === "comentarios"
                         ? "bg-white/20 text-white"
-                        : "bg-cardbg border border-bordercolor text-subtle"
+                        : "bg-background border border-bordercolor text-subtle"
                     }`}
                   >
                     {comments.length}
