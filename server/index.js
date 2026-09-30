@@ -91,6 +91,16 @@ async function initDb() {
         content TEXT NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        type VARCHAR(20) NOT NULL,
+        message TEXT NOT NULL,
+        post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+      );
     `);
 
         // Garante a coluna is_admin em bancos já existentes (login administrativo unificado)
@@ -115,6 +125,46 @@ async function initDb() {
 }
 
 initDb();
+
+// ==========================================
+// HELPERS: SISTEMA DE NOTIFICAÇÕES
+// ==========================================
+
+// Cria uma notificação para cada usuário da lista (insert em lote)
+async function createNotifications(userIds, type, message, postId = null) {
+    if (!userIds || userIds.length === 0) return;
+
+    const values = [];
+    const placeholders = userIds
+        .map((userId, i) => {
+            const base = i * 4;
+            values.push(userId, type, message, postId);
+            return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`;
+        })
+        .join(', ');
+
+    await pool.query(
+        `INSERT INTO notifications (user_id, type, message, post_id) VALUES ${placeholders}`,
+        values
+    );
+}
+
+// Retorna os ids de todos os administradores (opcionalmente excluindo um deles)
+async function getAdminUserIds(excludeUserId = null) {
+    const query = excludeUserId
+        ? 'SELECT id FROM users WHERE is_admin = true AND id != $1'
+        : 'SELECT id FROM users WHERE is_admin = true';
+    const result = await pool.query(query, excludeUserId ? [excludeUserId] : []);
+    return result.rows.map((row) => row.id);
+}
+
+// Retorna os ids de todos os usuários (opcionalmente excluindo um deles)
+async function getAllUserIds(excludeUserId = null) {
+    const query = excludeUserId ? 'SELECT id FROM users WHERE id != $1' : 'SELECT id FROM users';
+    const result = await pool.query(query, excludeUserId ? [excludeUserId] : []);
+    return result.rows.map((row) => row.id);
+}
+
 
 // Middleware: Verifica Token do Administrador (aceita tanto o login legado /admin
 // quanto o login unificado de leitor com is_admin = true)
@@ -365,6 +415,59 @@ app.put('/api/user/password', verifyUserToken, async (req, res) => {
 
 
 // ==========================================
+// ROTAS DE NOTIFICAÇÕES
+// ==========================================
+
+// Lista as notificações do usuário logado (mais recentes primeiro)
+app.get('/api/notifications', verifyUserToken, async (req, res) => {
+    const userId = req.user.id;
+    try {
+        // Limpeza automática: remove notificações lidas com mais de 30 dias
+        await pool.query(
+            `DELETE FROM notifications WHERE is_read = true AND created_at < NOW() - INTERVAL '30 days'`
+        );
+
+        const result = await pool.query(
+            'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
+            [userId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Marca uma notificação específica como lida
+app.put('/api/notifications/:id/read', verifyUserToken, async (req, res) => {
+    const userId = req.user.id;
+    const notificationId = req.params.id;
+    try {
+        await pool.query(
+            'UPDATE notifications SET is_read = true WHERE id = $1 AND user_id = $2',
+            [notificationId, userId]
+        );
+        res.json({ message: 'Notificação marcada como lida.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Marca todas as notificações do usuário logado como lidas
+app.put('/api/notifications/read-all', verifyUserToken, async (req, res) => {
+    const userId = req.user.id;
+    try {
+        await pool.query(
+            'UPDATE notifications SET is_read = true WHERE user_id = $1 AND is_read = false',
+            [userId]
+        );
+        res.json({ message: 'Todas as notificações foram marcadas como lidas.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// ==========================================
 // ROTAS DE INTERAÇÃO (Curtidas e Comentários)
 // ==========================================
 
@@ -399,6 +502,17 @@ app.post('/api/posts/:id/like', verifyUserToken, async (req, res) => {
             return res.json({ message: 'Curtida removida', action: 'unliked' });
         } else {
             await pool.query('INSERT INTO likes (user_id, post_id) VALUES ($1, $2)', [userId, postId]);
+
+            // Notifica os administradores sobre a nova curtida
+            try {
+                const postResult = await pool.query('SELECT title FROM posts WHERE id = $1', [postId]);
+                const postTitle = postResult.rows[0]?.title || 'uma obra';
+                const adminIds = await getAdminUserIds(userId);
+                await createNotifications(adminIds, 'like', `${req.user.name} curtiu "${postTitle}".`, postId);
+            } catch (notifyErr) {
+                console.error('Erro ao criar notificação de curtida:', notifyErr);
+            }
+
             return res.json({ message: 'Obra curtida', action: 'liked' });
         }
     } catch (err) {
@@ -436,6 +550,17 @@ app.post('/api/posts/:id/comments', verifyUserToken, async (req, res) => {
             'INSERT INTO comments (user_id, post_id, content) VALUES ($1, $2, $3) RETURNING *',
             [userId, postId, content]
         );
+
+        // Notifica os administradores sobre o novo comentário
+        try {
+            const postResult = await pool.query('SELECT title FROM posts WHERE id = $1', [postId]);
+            const postTitle = postResult.rows[0]?.title || 'uma obra';
+            const adminIds = await getAdminUserIds(userId);
+            await createNotifications(adminIds, 'comment', `${req.user.name} comentou em "${postTitle}".`, postId);
+        } catch (notifyErr) {
+            console.error('Erro ao criar notificação de comentário:', notifyErr);
+        }
+
         res.status(201).json({ message: 'Comentário publicado!', comment: result.rows[0] });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -476,6 +601,16 @@ app.post('/api/posts', verifyAdminToken, async (req, res) => {
             'INSERT INTO posts (title, author, category, content, type) VALUES ($1, $2, $3, $4, $5) RETURNING id',
             [title, author, category, content, type]
         );
+
+        // Notifica todos os leitores (e demais admins) sobre a nova obra
+        try {
+            const creatorId = req.admin?.id || null;
+            const userIds = await getAllUserIds(creatorId);
+            await createNotifications(userIds, 'post', `Nova publicação: "${title}".`, result.rows[0].id);
+        } catch (notifyErr) {
+            console.error('Erro ao criar notificação de nova obra:', notifyErr);
+        }
+
         res.json({ id: result.rows[0].id, message: 'Obra cadastrada com sucesso!' });
     } catch (err) {
         res.status(500).json({ error: err.message });

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
 export function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -13,6 +15,12 @@ export function Navbar() {
   const { user, logout } = useAuth();
   const userMenuRef = useRef(null);
 
+  // Estados do sino de notificações
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const notificationsRef = useRef(null);
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
   useEffect(() => {
     const theme = localStorage.getItem("theme");
     if (theme === "dark") {
@@ -21,11 +29,17 @@ export function Navbar() {
     }
   }, []);
 
-  // Fecha o menu do usuário ao clicar fora dele
+  // Fecha o menu do usuário e o de notificações ao clicar fora deles
   useEffect(() => {
     function handleClickOutside(event) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
+      }
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target)
+      ) {
+        setNotificationsOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -33,6 +47,33 @@ export function Navbar() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // Busca as notificações do usuário logado, com polling a cada 30 segundos
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+
+    const token = localStorage.getItem("@EntreVersos:token");
+
+    async function fetchNotifications() {
+      try {
+        const response = await fetch(`${API_URL}/api/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          setNotifications(await response.json());
+        }
+      } catch (error) {
+        console.error("Erro ao buscar notificações:", error);
+      }
+    }
+
+    fetchNotifications();
+    const intervalId = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(intervalId);
+  }, [user]);
 
   const toggleTheme = () => {
     if (isDark) {
@@ -63,6 +104,61 @@ export function Navbar() {
   };
 
   const isActive = (path) => location.pathname === path;
+
+  const handleNotificationClick = async (notification) => {
+    setNotificationsOpen(false);
+
+    if (!notification.is_read) {
+      const token = localStorage.getItem("@EntreVersos:token");
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notification.id ? { ...n, is_read: true } : n,
+        ),
+      );
+      try {
+        await fetch(`${API_URL}/api/notifications/${notification.id}/read`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (error) {
+        console.error("Erro ao marcar notificação como lida:", error);
+      }
+    }
+
+    if (notification.post_id) {
+      navigate(`/leitura/${notification.post_id}`);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    const token = localStorage.getItem("@EntreVersos:token");
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    try {
+      await fetch(`${API_URL}/api/notifications/read-all`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (error) {
+      console.error("Erro ao marcar todas as notificações como lidas:", error);
+    }
+  };
+
+  const notificationIcon = (type) => {
+    if (type === "like") return "❤️";
+    if (type === "comment") return "💬";
+    return "📜";
+  };
+
+  const timeAgo = (dateString) => {
+    const diffMs = Date.now() - new Date(dateString).getTime();
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return "agora";
+    if (minutes < 60) return `${minutes}min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `${days}d`;
+  };
 
   return (
     <header className="w-full bg-background py-4 md:py-6 px-4 md:px-6 relative z-50 transition-colors duration-500">
@@ -162,6 +258,87 @@ export function Navbar() {
             </button>
           )}
 
+          {/* Sino de Notificações (só para usuários logados) */}
+          {user && (
+            <div className="relative" ref={notificationsRef}>
+              <button
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative text-charcoal hover:opacity-70 transition-opacity p-1"
+                aria-label="Notificações"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-terra text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-background border border-bordercolor rounded-xl shadow-lg py-2 text-sm">
+                  <div className="flex items-center justify-between px-4 py-1.5">
+                    <span className="font-semibold text-charcoal">
+                      Notificações
+                    </span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="text-xs text-terra hover:opacity-70 transition-opacity font-medium"
+                      >
+                        Marcar todas como lidas
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <p className="text-xs text-subtle px-4 py-4 text-center">
+                        Nenhuma notificação por enquanto.
+                      </p>
+                    ) : (
+                      notifications.map((notification) => (
+                        <button
+                          key={notification.id}
+                          onClick={() => handleNotificationClick(notification)}
+                          className={`w-full text-left px-4 py-2.5 flex items-start gap-2.5 transition-colors hover:bg-bordercolor/30 ${
+                            !notification.is_read ? "bg-terra/5" : ""
+                          }`}
+                        >
+                          <span className="text-base leading-none mt-0.5">
+                            {notificationIcon(notification.type)}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-xs text-charcoal leading-relaxed">
+                              {notification.message}
+                            </span>
+                            <span className="block text-[11px] text-subtle mt-0.5">
+                              {timeAgo(notification.created_at)}
+                            </span>
+                          </span>
+                          {!notification.is_read && (
+                            <span className="w-2 h-2 rounded-full bg-terra mt-1 shrink-0" />
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Botão de Alternância de Tema */}
           <button
             onClick={toggleTheme}
@@ -202,7 +379,7 @@ export function Navbar() {
                   </p>
 
                   <Link
-                    to="/Profile"
+                    to="/perfil"
                     onClick={() => setUserMenuOpen(false)}
                     className="block w-full text-left px-4 py-2 text-charcoal hover:bg-bordercolor/30 transition-colors"
                   >
