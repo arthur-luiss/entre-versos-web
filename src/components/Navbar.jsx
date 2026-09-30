@@ -202,7 +202,7 @@ export function Navbar() {
                   </p>
 
                   <Link
-                    to="/perfil"
+                    to="/Profile"
                     onClick={() => setUserMenuOpen(false)}
                     className="block w-full text-left px-4 py-2 text-charcoal hover:bg-bordercolor/30 transition-colors"
                   >
