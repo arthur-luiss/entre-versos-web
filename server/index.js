@@ -6,11 +6,25 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const webpush = require('web-push');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const SECRET_KEY = process.env.JWT_SECRET || 'chave-secreta-padrao';
 const ADMIN_PIN = process.env.ADMIN_PIN || null;
+
+// Configuração do Web Push (notificações reais no celular/navegador)
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(
+        'mailto:contato@entreversos.com',
+        VAPID_PUBLIC_KEY,
+        VAPID_PRIVATE_KEY
+    );
+} else {
+    console.warn('VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY não configuradas — push notifications desativadas.');
+}
 
 // Verifica se o PIN de administrador informado bate com o configurado no .env
 function isValidAdminPin(pin) {
@@ -101,6 +115,15 @@ async function initDb() {
         is_read BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+      );
     `);
 
         // Garante a coluna is_admin em bancos já existentes (login administrativo unificado)
@@ -130,7 +153,8 @@ initDb();
 // HELPERS: SISTEMA DE NOTIFICAÇÕES
 // ==========================================
 
-// Cria uma notificação para cada usuário da lista (insert em lote)
+// Cria uma notificação para cada usuário da lista (insert em lote) e,
+// em seguida, dispara um push notification real para os dispositivos inscritos
 async function createNotifications(userIds, type, message, postId = null) {
     if (!userIds || userIds.length === 0) return;
 
@@ -147,6 +171,51 @@ async function createNotifications(userIds, type, message, postId = null) {
         `INSERT INTO notifications (user_id, type, message, post_id) VALUES ${placeholders}`,
         values
     );
+
+    const titles = { like: 'Nova curtida', comment: 'Novo comentário', post: 'Nova publicação' };
+    sendPushToUsers(userIds, {
+        title: titles[type] || 'Entre Versos',
+        body: message,
+        url: postId ? `/leitura/${postId}` : '/',
+        tag: type,
+    }).catch((err) => console.error('Erro ao disparar push notification:', err));
+}
+
+// Envia um push real (via Web Push API) para cada dispositivo inscrito dos usuários informados.
+// Remove automaticamente inscrições expiradas/inválidas (erro 404/410 do serviço de push).
+async function sendPushToUsers(userIds, payload) {
+    if (!userIds || userIds.length === 0) return;
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return; // Push não configurado neste ambiente
+
+    try {
+        const result = await pool.query(
+            'SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ANY($1::uuid[])',
+            [userIds]
+        );
+
+        const payloadString = JSON.stringify(payload);
+
+        await Promise.all(
+            result.rows.map(async (sub) => {
+                const subscription = {
+                    endpoint: sub.endpoint,
+                    keys: { p256dh: sub.p256dh, auth: sub.auth },
+                };
+                try {
+                    await webpush.sendNotification(subscription, payloadString);
+                } catch (err) {
+                    if (err.statusCode === 404 || err.statusCode === 410) {
+                        // Inscrição expirada ou removida pelo navegador: limpa do banco
+                        await pool.query('DELETE FROM push_subscriptions WHERE id = $1', [sub.id]);
+                    } else {
+                        console.error('Erro ao enviar push:', err.message);
+                    }
+                }
+            })
+        );
+    } catch (err) {
+        console.error('Erro ao buscar inscrições push:', err);
+    }
 }
 
 // Retorna os ids de todos os administradores (opcionalmente excluindo um deles)
@@ -461,6 +530,54 @@ app.put('/api/notifications/read-all', verifyUserToken, async (req, res) => {
             [userId]
         );
         res.json({ message: 'Todas as notificações foram marcadas como lidas.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// ==========================================
+// ROTAS DE PUSH NOTIFICATIONS
+// ==========================================
+
+// Retorna a chave pública VAPID, usada pelo front-end para se inscrever
+app.get('/api/push/vapid-public-key', (req, res) => {
+    if (!VAPID_PUBLIC_KEY) {
+        return res.status(503).json({ error: 'Push notifications não configuradas no servidor.' });
+    }
+    res.json({ publicKey: VAPID_PUBLIC_KEY });
+});
+
+// Salva (ou atualiza) a inscrição push do dispositivo atual
+app.post('/api/push/subscribe', verifyUserToken, async (req, res) => {
+    const userId = req.user.id;
+    const { endpoint, keys } = req.body;
+
+    if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ error: 'Inscrição push inválida.' });
+    }
+
+    try {
+        await pool.query(
+            `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (endpoint) DO UPDATE SET user_id = $1, p256dh = $3, auth = $4`,
+            [userId, endpoint, keys.p256dh, keys.auth]
+        );
+        res.status(201).json({ message: 'Notificações no celular ativadas.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Remove a inscrição (usuário desativou as notificações neste dispositivo)
+app.post('/api/push/unsubscribe', verifyUserToken, async (req, res) => {
+    const { endpoint } = req.body;
+    if (!endpoint) return res.status(400).json({ error: 'Endpoint não informado.' });
+
+    try {
+        await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [endpoint]);
+        res.json({ message: 'Notificações no celular desativadas.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -24,6 +24,12 @@ export function Profile() {
   const [passwordMessage, setPasswordMessage] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  // Estados para notificações push no celular/navegador
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushMessage, setPushMessage] = useState("");
+
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
   const token = localStorage.getItem("@EntreVersos:token");
 
@@ -33,6 +39,27 @@ export function Profile() {
       navigate("/login");
     }
   }, [user, navigate]);
+
+  // Verifica se o navegador suporta push e se este dispositivo já está inscrito
+  useEffect(() => {
+    async function checkPushStatus() {
+      const supported =
+        "serviceWorker" in navigator && "PushManager" in window;
+      setPushSupported(supported);
+      if (!supported) return;
+
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const existingSubscription =
+          await registration.pushManager.getSubscription();
+        setPushSubscribed(!!existingSubscription);
+      } catch (error) {
+        console.error("Erro ao verificar inscrição push:", error);
+      }
+    }
+
+    checkPushStatus();
+  }, []);
 
   // Busca os dados do usuário
   useEffect(() => {
@@ -131,6 +158,99 @@ export function Profile() {
       setPasswordMessage("Erro na conexão com o servidor.");
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  // Converte a chave pública VAPID (base64url) para o formato que o navegador exige
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; i++) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  const handleEnablePush = async () => {
+    setPushMessage("");
+    setPushLoading(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setPushMessage("Permissão de notificação negada.");
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+
+      const keyResponse = await fetch(`${API_URL}/api/push/vapid-public-key`);
+      if (!keyResponse.ok) {
+        throw new Error("Push notifications indisponíveis no momento.");
+      }
+      const { publicKey } = await keyResponse.json();
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+
+      const subscriptionJson = subscription.toJSON();
+      const response = await fetch(`${API_URL}/api/push/subscribe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          endpoint: subscriptionJson.endpoint,
+          keys: subscriptionJson.keys,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Erro ao salvar inscrição no servidor.");
+
+      setPushSubscribed(true);
+      setPushMessage("Notificações no celular ativadas!");
+      setTimeout(() => setPushMessage(""), 3000);
+    } catch (error) {
+      console.error("Erro ao ativar notificações push:", error);
+      setPushMessage("Não foi possível ativar as notificações.");
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleDisablePush = async () => {
+    setPushMessage("");
+    setPushLoading(true);
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        await fetch(`${API_URL}/api/push/unsubscribe`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ endpoint: subscription.endpoint }),
+        });
+        await subscription.unsubscribe();
+      }
+
+      setPushSubscribed(false);
+      setPushMessage("Notificações no celular desativadas.");
+      setTimeout(() => setPushMessage(""), 3000);
+    } catch (error) {
+      console.error("Erro ao desativar notificações push:", error);
+      setPushMessage("Não foi possível desativar as notificações.");
+    } finally {
+      setPushLoading(false);
     }
   };
 
