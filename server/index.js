@@ -337,7 +337,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
             return res.status(401).json({ error: 'PIN de administrador incorreto.' });
         }
 
-        const token = jwt.sign({ id: user.id, username: user.username, role: 'admin' }, SECRET_KEY, { expiresIn: '2h' });
+        const token = jwt.sign({ id: user.id, username: user.username, role: 'admin' }, SECRET_KEY, { expiresIn: '7d' });
         res.json({ message: 'Login realizado com sucesso!', token });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -393,7 +393,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
         const token = jwt.sign(
             { id: user.id, name: user.name, role: 'user', is_admin: !!user.is_admin },
             SECRET_KEY,
-            { expiresIn: user.is_admin ? '2h' : '7d' }
+            { expiresIn: '7d' }
         );
 
         res.json({
