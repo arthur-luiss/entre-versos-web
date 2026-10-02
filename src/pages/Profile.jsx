@@ -489,6 +489,62 @@ export function Profile() {
                     </button>
                   </form>
                 </div>
+
+                {/* Cartão: Notificações no celular (push) */}
+                <div className="bg-cardbg border border-bordercolor rounded-xl p-6">
+                  <h2 className="text-sm font-semibold text-charcoal mb-1">
+                    Notificações no celular
+                  </h2>
+                  <p className="text-xs text-subtle mb-4">
+                    Receba um aviso no seu dispositivo quando houver novidades,
+                    mesmo com o site fechado.
+                  </p>
+
+                  {!pushSupported ? (
+                    <p className="text-xs text-subtle bg-background border border-bordercolor rounded-lg px-3 py-2">
+                      Seu navegador não é compatível com notificações push.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-sm text-charcoal">
+                          {pushSubscribed
+                            ? "Ativadas neste dispositivo"
+                            : "Desativadas neste dispositivo"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={
+                            pushSubscribed ? handleDisablePush : handleEnablePush
+                          }
+                          disabled={pushLoading}
+                          aria-pressed={pushSubscribed}
+                          className={`relative w-12 h-7 rounded-full transition-colors disabled:opacity-50 ${
+                            pushSubscribed ? "bg-terra" : "bg-bordercolor"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                              pushSubscribed ? "translate-x-5" : ""
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {pushMessage && (
+                        <div
+                          className={`mt-3 p-3 text-sm rounded-lg ${
+                            pushMessage.includes("ativadas")
+                              ? "text-green-600 bg-green-500/10"
+                              : "text-red-500 bg-red-500/10"
+                          }`}
+                        >
+                          {pushMessage}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
