@@ -719,11 +719,23 @@ app.post('/api/posts', verifyAdminToken, async (req, res) => {
             [title, author, category, content, type]
         );
 
-        // Notifica todos os leitores (e demais admins) sobre a nova obra
+        // Notifica todos os leitores (e demais admins) sobre a nova obra,
+        // incluindo quem publicou e uma prévia do texto
         try {
             const creatorId = req.admin?.id || null;
+            const creatorName = req.admin?.name || req.admin?.username || 'Um administrador';
+
+            const cleanContent = (content || '').replace(/\s+/g, ' ').trim();
+            const PREVIEW_LENGTH = 80;
+            const preview =
+                cleanContent.length > PREVIEW_LENGTH
+                    ? `${cleanContent.slice(0, PREVIEW_LENGTH)}…`
+                    : cleanContent;
+
+            const message = `${creatorName} publicou "${title}": ${preview}`;
+
             const userIds = await getAllUserIds(creatorId);
-            await createNotifications(userIds, 'post', `Nova publicação: "${title}".`, result.rows[0].id);
+            await createNotifications(userIds, 'post', message, result.rows[0].id);
         } catch (notifyErr) {
             console.error('Erro ao criar notificação de nova obra:', notifyErr);
         }
