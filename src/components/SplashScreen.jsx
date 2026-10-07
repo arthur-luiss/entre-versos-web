@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 const SPLASH_KEY = "ev:splash-shown";
 
 // Tempo total da animação (ms) e da saída (ms)
-const DURATION = 2400;
+const DURATION = 3600;
 const EXIT_DURATION = 600;
 
 // Cores fixas (a abertura é sempre escura, independente do tema do site)
@@ -77,17 +77,16 @@ export function SplashScreen({ onFinish }) {
     >
       <style>{`
         @keyframes ev-pop {
-          0% { transform: scale(0.35) rotate(-10deg); opacity: 0; }
-          60% { transform: scale(1.1) rotate(3deg); opacity: 1; }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+          0% { transform: scale(0.7); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
         }
         @keyframes ev-float {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
+          50% { transform: translateY(-5px); }
         }
         @keyframes ev-ring {
-          0% { transform: scale(0.55); opacity: 0.55; }
-          100% { transform: scale(2.2); opacity: 0; }
+          0% { transform: scale(0.7); opacity: 0.4; }
+          100% { transform: scale(1.8); opacity: 0; }
         }
         @keyframes ev-letter {
           from { opacity: 0; transform: translateY(16px); }
@@ -123,7 +122,7 @@ export function SplashScreen({ onFinish }) {
         className="ev-anim absolute -top-24 -left-24 w-80 h-80 rounded-full"
         style={{
           background: TERRA,
-          opacity: 0.16,
+          opacity: 0.12,
           filter: "blur(80px)",
           animation: "ev-blob-a 6s ease-in-out infinite",
         }}
@@ -132,7 +131,7 @@ export function SplashScreen({ onFinish }) {
         className="ev-anim absolute -bottom-28 -right-24 w-96 h-96 rounded-full"
         style={{
           background: TERRA,
-          opacity: 0.12,
+          opacity: 0.09,
           filter: "blur(90px)",
           animation: "ev-blob-b 7s ease-in-out infinite",
         }}
@@ -140,32 +139,32 @@ export function SplashScreen({ onFinish }) {
 
       <div className="ev-anim relative flex flex-col items-center">
         {/* Logo com anéis pulsando */}
-        <div className="relative flex items-center justify-center w-44 h-44">
-          {[0, 0.7].map((delay) => (
+        <div className="relative flex items-center justify-center w-32 h-32">
+          {[0].map((delay) => (
             <span
               key={delay}
               className="absolute inset-0 rounded-full"
               style={{
-                border: `2px solid ${TERRA}`,
+                border: `1.5px solid ${TERRA}`,
                 opacity: 0,
-                animation: `ev-ring 2s ease-out ${0.5 + delay}s infinite`,
+                animation: `ev-ring 2.6s ease-out ${0.8 + delay}s infinite`,
               }}
             />
           ))}
 
           <div
             style={{
-              animation: "ev-pop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+              animation: "ev-pop 1.1s cubic-bezier(0.22, 1, 0.36, 1) both",
             }}
           >
             <img
               src="/icons/logo.png"
               alt=""
               draggable="false"
-              className="w-28 h-auto select-none"
+              className="w-20 h-auto select-none"
               style={{
-                filter: "drop-shadow(0 0 22px rgba(212, 128, 95, 0.4))",
-                animation: "ev-float 3s ease-in-out 1s infinite",
+                filter: "drop-shadow(0 0 12px rgba(212, 128, 95, 0.25))",
+                animation: "ev-float 3.2s ease-in-out 1.2s infinite",
               }}
             />
           </div>
@@ -173,7 +172,7 @@ export function SplashScreen({ onFinish }) {
 
         {/* Título letra por letra */}
         <h1
-          className="mt-6 font-serif text-3xl font-semibold flex"
+          className="mt-5 font-serif text-2xl font-semibold flex"
           style={{ color: TERRA }}
         >
           {TITLE.split("").map((char, i) => (
@@ -182,7 +181,7 @@ export function SplashScreen({ onFinish }) {
               style={{
                 display: "inline-block",
                 opacity: 0,
-                animation: `ev-letter 0.5s ease-out ${0.9 + i * 0.05}s forwards`,
+                animation: `ev-letter 0.6s ease-out ${1.2 + i * 0.07}s forwards`,
               }}
             >
               {char === " " ? "\u00A0" : char}
@@ -195,7 +194,7 @@ export function SplashScreen({ onFinish }) {
           style={{
             color: TEXT_SOFT,
             opacity: 0,
-            animation: "ev-fade-up 0.6s ease-out 1.6s forwards",
+            animation: "ev-fade-up 0.7s ease-out 2.4s forwards",
           }}
         >
           Palavras que encontram sentimentos.
@@ -203,18 +202,18 @@ export function SplashScreen({ onFinish }) {
 
         {/* Barra de carregamento */}
         <div
-          className="mt-10 w-40 h-1.5 rounded-full overflow-hidden relative"
+          className="mt-8 w-32 h-1 rounded-full overflow-hidden relative"
           style={{
             backgroundColor: "rgba(255, 255, 255, 0.08)",
             opacity: 0,
-            animation: "ev-fade-up 0.5s ease-out 0.8s forwards",
+            animation: "ev-fade-up 0.5s ease-out 1s forwards",
           }}
         >
           <div
             className="absolute inset-0 rounded-full origin-left"
             style={{
               background: `linear-gradient(90deg, ${TERRA}, ${TERRA_SOFT})`,
-              animation: `ev-bar ${DURATION - 900}ms cubic-bezier(0.4, 0, 0.2, 1) 0.9s forwards`,
+              animation: `ev-bar ${DURATION - 1300}ms cubic-bezier(0.4, 0, 0.2, 1) 1.1s forwards`,
               transform: "scaleX(0)",
             }}
           />
@@ -223,7 +222,7 @@ export function SplashScreen({ onFinish }) {
             style={{
               background:
                 "linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)",
-              animation: "ev-shimmer 1.2s ease-in-out 1s infinite",
+              animation: "ev-shimmer 1.4s ease-in-out 1.2s infinite",
             }}
           />
         </div>
