@@ -11,9 +11,6 @@ const EXIT_DURATION = 600;
 const BG = "#1c1512";
 const TERRA = "#d4805f";
 const TERRA_SOFT = "#e8a98a";
-const TEXT_SOFT = "rgba(236, 222, 210, 0.6)";
-
-const TITLE = "Entre Versos";
 
 /**
  * Decide se a abertura deve aparecer:
@@ -80,21 +77,17 @@ export function SplashScreen({ onFinish }) {
           0% { transform: scale(0.7); opacity: 0; }
           100% { transform: scale(1); opacity: 1; }
         }
-        @keyframes ev-float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-5px); }
+        @keyframes ev-breathe {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.04); }
         }
         @keyframes ev-ring {
           0% { transform: scale(0.7); opacity: 0.4; }
           100% { transform: scale(1.8); opacity: 0; }
         }
-        @keyframes ev-letter {
-          from { opacity: 0; transform: translateY(16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes ev-fade-up {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes ev-fade {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         @keyframes ev-blob-a {
           0%, 100% { transform: translate(0, 0) scale(1); }
@@ -137,95 +130,61 @@ export function SplashScreen({ onFinish }) {
         }}
       />
 
-      <div className="ev-anim relative flex flex-col items-center">
-        {/* Logo com anéis pulsando */}
-        <div className="relative flex items-center justify-center w-32 h-32">
-          {[0].map((delay) => (
-            <span
-              key={delay}
-              className="absolute inset-0 rounded-full"
-              style={{
-                border: `1.5px solid ${TERRA}`,
-                opacity: 0,
-                animation: `ev-ring 2.6s ease-out ${0.8 + delay}s infinite`,
-              }}
-            />
-          ))}
-
-          <div
-            style={{
-              animation: "ev-pop 1.1s cubic-bezier(0.22, 1, 0.36, 1) both",
-            }}
-          >
-            <img
-              src="/icons/logo.png"
-              alt=""
-              draggable="false"
-              className="w-20 h-auto select-none"
-              style={{
-                filter: "drop-shadow(0 0 12px rgba(212, 128, 95, 0.25))",
-                animation: "ev-float 3.2s ease-in-out 1.2s infinite",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Título letra por letra */}
-        <h1
-          className="mt-5 font-serif text-2xl font-semibold flex"
-          style={{ color: TERRA }}
-        >
-          {TITLE.split("").map((char, i) => (
-            <span
-              key={i}
-              style={{
-                display: "inline-block",
-                opacity: 0,
-                animation: `ev-letter 0.6s ease-out ${1.2 + i * 0.07}s forwards`,
-              }}
-            >
-              {char === " " ? "\u00A0" : char}
-            </span>
-          ))}
-        </h1>
-
-        <p
-          className="mt-2 text-xs tracking-wide"
+      {/* Logo no centro exato da tela, com um anel pulsando atrás */}
+      <div className="ev-anim relative flex items-center justify-center w-32 h-32">
+        <span
+          className="absolute inset-0 rounded-full"
           style={{
-            color: TEXT_SOFT,
+            border: `1.5px solid ${TERRA}`,
             opacity: 0,
-            animation: "ev-fade-up 0.7s ease-out 2.4s forwards",
+            animation: "ev-ring 2.6s ease-out 0.8s infinite",
           }}
-        >
-          Palavras que encontram sentimentos.
-        </p>
+        />
 
-        {/* Barra de carregamento */}
         <div
-          className="mt-8 w-32 h-1 rounded-full overflow-hidden relative"
           style={{
-            backgroundColor: "rgba(255, 255, 255, 0.08)",
-            opacity: 0,
-            animation: "ev-fade-up 0.5s ease-out 1s forwards",
+            animation: "ev-pop 1.1s cubic-bezier(0.22, 1, 0.36, 1) both",
           }}
         >
-          <div
-            className="absolute inset-0 rounded-full origin-left"
+          <img
+            src="/icons/logo.png"
+            alt=""
+            draggable="false"
+            className="block w-20 h-auto select-none"
             style={{
-              background: `linear-gradient(90deg, ${TERRA}, ${TERRA_SOFT})`,
-              animation: `ev-bar ${DURATION - 1300}ms cubic-bezier(0.4, 0, 0.2, 1) 1.1s forwards`,
-              transform: "scaleX(0)",
-            }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)",
-              animation: "ev-shimmer 1.4s ease-in-out 1.2s infinite",
+              filter: "drop-shadow(0 0 12px rgba(212, 128, 95, 0.25))",
+              animation: "ev-breathe 3.2s ease-in-out 1.2s infinite",
             }}
           />
         </div>
+      </div>
+
+      {/* Barra de carregamento, logo abaixo do logo */}
+      <div
+        className="ev-anim absolute left-1/2 -translate-x-1/2 w-32 h-1 rounded-full overflow-hidden"
+        style={{
+          top: "calc(50% + 7.5rem)",
+          backgroundColor: "rgba(255, 255, 255, 0.08)",
+          opacity: 0,
+          animation: "ev-fade 0.5s ease-out 0.7s forwards",
+        }}
+      >
+        <div
+          className="absolute inset-0 rounded-full origin-left"
+          style={{
+            background: `linear-gradient(90deg, ${TERRA}, ${TERRA_SOFT})`,
+            animation: `ev-bar ${DURATION - 1000}ms cubic-bezier(0.4, 0, 0.2, 1) 0.8s forwards`,
+            transform: "scaleX(0)",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)",
+            animation: "ev-shimmer 1.4s ease-in-out 0.9s infinite",
+          }}
+        />
       </div>
     </div>
   );
