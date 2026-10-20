@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.entreversos.app",
+      "sha256_cert_fingerprints": [
+        "8D:A6:AE:E8:6C:A9:1F:77:DD:EA:73:2B:EF:B0:42:F3:44:38:94:64:7F:2A:E1:F5:39:09:03:6F:1F:56:64:E2"
+      ]
+    }
+  }
+]
