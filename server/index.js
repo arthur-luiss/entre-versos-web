@@ -822,6 +822,39 @@ app.delete('/api/admin/comments/:id', verifyAdminToken, async (req, res) => {
 
 
 // ==========================================
+// APP ANDROID (TWA): Digital Asset Links
+// ==========================================
+// Liga o site ao APK. Sem isso, o app abre com a barra de endereço do Chrome.
+// Configure na Vercel: ANDROID_PACKAGE_NAME (ex.: com.entreversos.app) e
+// ANDROID_SHA256_FINGERPRINTS (impressão digital SHA-256 da chave de assinatura;
+// separe várias por vírgula). Servido por rota (e não por arquivo) porque o
+// express.static ignora pastas que começam com ponto, como /.well-known.
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    const packageName = process.env.ANDROID_PACKAGE_NAME;
+    const fingerprints = (process.env.ANDROID_SHA256_FINGERPRINTS || '')
+        .split(',')
+        .map((f) => f.trim())
+        .filter(Boolean);
+
+    if (!packageName || fingerprints.length === 0) {
+        return res.status(404).json({ error: 'assetlinks não configurado.' });
+    }
+
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json([
+        {
+            relation: ['delegate_permission/common.handle_all_urls'],
+            target: {
+                namespace: 'android_app',
+                package_name: packageName,
+                sha256_cert_fingerprints: fingerprints,
+            },
+        },
+    ]);
+});
+
+
+// ==========================================
 // CONFIGURAÇÃO DE PRODUÇÃO E SERVERLESS
 // ==========================================
 

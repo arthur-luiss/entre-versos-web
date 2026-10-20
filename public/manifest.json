@@ -1,13 +1,20 @@
 {
+  "id": "/",
   "name": "Entre Versos",
   "short_name": "Entre Versos",
   "description": "Uma plataforma literária para sentir e compartilhar versos.",
+  "lang": "pt-BR",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#1c1512",
   "theme_color": "#1c1512",
+  "categories": [
+    "books",
+    "lifestyle"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
