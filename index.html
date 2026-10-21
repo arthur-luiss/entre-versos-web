@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/entre-versos-favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="manifest" href="/manifest.json" /> <meta name="theme-color" content="#1c1512" /> <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1c1512" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
     <!-- Fontes do Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,12 +16,39 @@
       rel="stylesheet"
     />
 
-    <style>@media (display-mode: standalone) { html, body { background: #1c1512; } }</style>
+    <script>
+      var d = document.documentElement;
+      try {
+        if (localStorage.getItem("theme") === "dark") d.classList.add("dark");
+      } catch (e) {}
+    </script>
+
+    <style>
+      @media (display-mode: standalone) {
+        html,
+        body {
+          background: #1c1512;
+        }
+      }
+    </style>
+
+    <style>
+      html.ev-splashing #root {
+        visibility: hidden;
+        animation: ev-unhide 0s 6s forwards;
+      }
+      @keyframes ev-unhide {
+        to {
+          visibility: visible;
+        }
+      }
+      #ev-splash {position: fixed; top: 0; right: 0; bottom: 0; left: 0;}
+    </style>
 
     <title>Entre Versos - Palavras que encontram sentimentos</title>
   </head>
   <body>
-    <!-- Aqui é onde o React vai desenhar toda a sua aplicação -->
+    <!-- Aqui é onde o React vai desenhar toda a sua aplicação --->
     <div id="root"></div>
 
     <!-- Script principal que carrega o seu App.jsx -->
