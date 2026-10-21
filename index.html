@@ -1,6 +1,250 @@
 <!doctype html>
 <html lang="pt-BR">
   <head>
+    <link rel="preload" as="image" href="/icons/logo.png" />
+    <script>
+      // Decide, antes da primeira pintura, se a abertura deve aparecer:
+      // só no app instalado, uma vez por sessão (ou forçada com ?splash=1).
+      (function () {
+        var d = document.documentElement;
+        // Aplica o tema salvo antes da primeira pintura (evita o clarão do tema claro)
+        try {
+          if (localStorage.getItem("theme") === "dark") d.classList.add("dark");
+        } catch (e) {}
+        var forced = /[?&]splash=1(&|$)/.test(location.search);
+        var standalone =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.navigator.standalone === true;
+        var seen = false;
+        try {
+          seen = !!sessionStorage.getItem("ev:splash-shown");
+        } catch (e) {}
+        if (forced || (standalone && !seen)) {
+          d.classList.add("ev-splashing");
+          try {
+            sessionStorage.setItem("ev:splash-shown", "1");
+          } catch (e) {}
+        }
+      })();
+    </script>
+    <style>
+      #ev-splash {
+        display: none;
+      }
+      html.ev-splashing,
+      html.ev-splashing body {
+        background: #1c1512;
+        overflow: hidden;
+      }
+      html.ev-splashing #root {
+        visibility: hidden;
+        animation: ev-unhide 0s 6s forwards;
+      }
+      @keyframes ev-unhide {
+        to {
+          visibility: visible;
+        }
+      }
+      html.ev-splashing #ev-splash {
+        display: flex;
+      }
+
+      #ev-splash {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 2147483000;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #1c1512;
+      }
+      #ev-splash.ev-leaving {
+        opacity: 0;
+        transform: scale(1.06);
+        filter: blur(6px);
+        pointer-events: none;
+        transition:
+          opacity 0.6s ease,
+          transform 0.6s ease,
+          filter 0.6s ease;
+      }
+      #ev-splash .ev-blob {
+        position: absolute;
+        border-radius: 50%;
+        background: #d4805f;
+      }
+      #ev-splash .ev-blob-a {
+        top: -6rem;
+        left: -6rem;
+        width: 20rem;
+        height: 20rem;
+        opacity: 0.12;
+        filter: blur(80px);
+        animation: ev-blob-a 6s ease-in-out infinite;
+      }
+      #ev-splash .ev-blob-b {
+        bottom: -7rem;
+        right: -6rem;
+        width: 24rem;
+        height: 24rem;
+        opacity: 0.09;
+        filter: blur(90px);
+        animation: ev-blob-b 7s ease-in-out infinite;
+      }
+      #ev-splash .ev-logo-box {
+        position: relative;
+        width: 8rem;
+        height: 8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #ev-splash .ev-ring {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        border-radius: 50%;
+        border: 1.5px solid #d4805f;
+        opacity: 0;
+        animation: ev-ring 2.6s ease-out 0.8s infinite;
+      }
+      #ev-splash .ev-logo-wrap {
+        animation: ev-pop 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      #ev-splash .ev-logo {
+        display: block;
+        width: 5rem;
+        height: auto;
+        user-select: none;
+        -webkit-user-drag: none;
+        filter: drop-shadow(0 0 12px rgba(212, 128, 95, 0.25));
+        animation: ev-breathe 3.2s ease-in-out 1.2s infinite;
+      }
+      #ev-splash .ev-bar {
+        position: absolute;
+        left: 50%;
+        top: calc(50% + 7.5rem);
+        width: 8rem;
+        height: 0.25rem;
+        transform: translateX(-50%);
+        border-radius: 9999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.08);
+        opacity: 0;
+        animation: ev-fade 0.5s ease-out 0.7s forwards;
+      }
+      #ev-splash .ev-bar-fill {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        border-radius: inherit;
+        transform-origin: left;
+        transform: scaleX(0);
+        background: linear-gradient(90deg, #d4805f, #e8a98a);
+        animation: ev-bar 2600ms cubic-bezier(0.4, 0, 0.2, 1) 0.8s forwards;
+      }
+      #ev-splash .ev-bar-shine {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.35),
+          transparent
+        );
+        animation: ev-shimmer 1.4s ease-in-out 0.9s infinite;
+      }
+
+      @keyframes ev-pop {
+        from {
+          transform: scale(0.7);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      @keyframes ev-breathe {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.04);
+        }
+      }
+      @keyframes ev-ring {
+        0% {
+          transform: scale(0.7);
+          opacity: 0.4;
+        }
+        100% {
+          transform: scale(1.8);
+          opacity: 0;
+        }
+      }
+      @keyframes ev-fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ev-blob-a {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        50% {
+          transform: translate(40px, -30px) scale(1.2);
+        }
+      }
+      @keyframes ev-blob-b {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        50% {
+          transform: translate(-40px, 30px) scale(1.15);
+        }
+      }
+      @keyframes ev-bar {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+      @keyframes ev-shimmer {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(100%);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #ev-splash * {
+          animation-duration: 0.01ms !important;
+          animation-delay: 0ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+    </style>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/entre-versos-favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,14 +259,6 @@
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-
-    <script>
-      var d = document.documentElement;
-      try {
-        if (localStorage.getItem("theme") === "dark") d.classList.add("dark");
-      } catch (e) {}
-    </script>
-
     <style>
       @media (display-mode: standalone) {
         html,
@@ -32,22 +268,48 @@
       }
     </style>
 
-    <style>
-      html.ev-splashing #root {
-        visibility: hidden;
-        animation: ev-unhide 0s 6s forwards;
-      }
-      @keyframes ev-unhide {
-        to {
-          visibility: visible;
-        }
-      }
-      #ev-splash {position: fixed; top: 0; right: 0; bottom: 0; left: 0;}
-    </style>
-
     <title>Entre Versos - Palavras que encontram sentimentos</title>
   </head>
   <body>
+    <div id="ev-splash" aria-hidden="true">
+      <span class="ev-blob ev-blob-a"></span>
+      <span class="ev-blob ev-blob-b"></span>
+      <div class="ev-logo-box">
+        <span class="ev-ring"></span>
+        <div class="ev-logo-wrap">
+          <img
+            class="ev-logo"
+            alt=""
+            draggable="false"
+            src="/icons/logo.png"
+            fetchpriority="high"
+          />
+        </div>
+      </div>
+      <div class="ev-bar">
+        <span class="ev-bar-fill"></span><span class="ev-bar-shine"></span>
+      </div>
+    </div>
+    <script>
+      // Controla o tempo: ~3,6 s de animação e 0,6 s de saída suave.
+      (function () {
+        var d = document.documentElement;
+        var el = document.getElementById("ev-splash");
+        if (!el || !d.classList.contains("ev-splashing")) return;
+        var reduce = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        ).matches;
+        var total = reduce ? 800 : 3600;
+        var exit = 600;
+        setTimeout(function () {
+          el.classList.add("ev-leaving");
+        }, total);
+        setTimeout(function () {
+          d.classList.remove("ev-splashing");
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, total + exit);
+      })();
+    </script>
     <!-- Aqui é onde o React vai desenhar toda a sua aplicação --->
     <div id="root"></div>
 
